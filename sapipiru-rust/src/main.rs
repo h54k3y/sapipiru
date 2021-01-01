@@ -3,8 +3,9 @@ use iced::{
     Container, Element, Length, Row, Sandbox,
     Settings, 
 };
+use std::io::Read;
 
-pub fn main() -> iced::Result {
+fn main() -> iced::Result {
     Styling::run(Settings::default())
 }
 
@@ -38,7 +39,9 @@ impl Sandbox for Styling {
         match message {
             Message::InputChanged(value) => self.input_value = value,
             Message::ButtonPressed => {
-                self.scroll_text = self.input_value.clone();
+                let mut html_text = String::new();
+                reqwest::blocking::get(&self.input_value).unwrap().read_to_string(&mut html_text);
+                self.scroll_text = html_text;
             },
         }
     }
@@ -60,7 +63,7 @@ impl Sandbox for Styling {
 
         let scrollable = Scrollable::new(&mut self.scroll)
         .width(Length::Fill)
-        .height(Length::Units(100))
+        .height(Length::Fill)
         .push(Text::new(&self.scroll_text));
 
         let content = Column::new()
@@ -79,27 +82,4 @@ impl Sandbox for Styling {
 }
 
 mod style {
-    /*use iced::{button, Color, Vector};
-
-    pub struct Button;
-
-    impl button::StyleSheet for Button {
-        fn active(&self) -> button::Style {
-            button::Style {
-                background: Color::from_rgb(0.11, 0.42, 0.87).into(),
-                border_radius: 12.0,
-                shadow_offset: Vector::new(1.0, 1.0),
-                text_color: Color::from_rgb8(0xEE, 0xEE, 0xEE),
-                ..button::Style::default()
-            }
-        }
-
-        fn hovered(&self) -> button::Style {
-            button::Style {
-                text_color: Color::WHITE,
-                shadow_offset: Vector::new(1.0, 2.0),
-                ..self.active()
-            }
-        }
-    }*/
 }
