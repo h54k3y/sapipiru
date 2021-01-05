@@ -160,6 +160,14 @@ pub mod handmade_html_parser {
                 token_end_flag = false;
             }
         }
+        
+        // add EOF token
+        let eof_token: Token = Token {
+            token_type: TokenType::EndOfFile,
+            tag_name: String::from(""),
+            token_data: String::from(""),
+        };
+        tokens.push(eof_token);
         tokens
     }
 
