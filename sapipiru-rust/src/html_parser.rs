@@ -187,25 +187,29 @@ pub mod handmade_html_parser {
                             if (current_token.token_type == TokenType::StratTag) && current_token.tag_name.to_uppercase().starts_with("!DOCTYPE") {
                                 current_token.tag_name = String::from("doctype");
                                 TokenType::Doctype
-                            } else if (current_token.token_type == TokenType::StratTag) && /*(current_token.tag_name.to_uppercase().starts_with("COMMENT") ||*/ current_token.tag_name.starts_with("!--") {
-                                current_token.token_data = current_token.tag_name;
+                            } else if ((current_token.token_type == TokenType::StratTag) && /*(current_token.tag_name.to_uppercase().starts_with("COMMENT") ||*/ current_token.tag_name.starts_with("!--")) || (current_token.token_type == TokenType::Comment) {
                                 if count_comment_end_char == 2 {
                                     //current_token.token_data = &current_token.tag_name.slice_chars(3,current_token.tag_name.len() - 3);
+                                    current_token.token_data = current_token.tag_name;
+                                    current_token.tag_name = String::from("comment");
+                                    current_token.token_data.remove(0);
+                                    current_token.token_data.remove(0);
+                                    current_token.token_data.remove(0);
                                     assert_eq!(Some('-'), current_token.token_data.pop());
                                     assert_eq!(Some('-'), current_token.token_data.pop());
                                 } else {
                                     // This ">" is part of the comment.
+                                    current_state = TokenizeState::TagName;
                                     token_end_flag = false;
-                                    current_token.token_data.push(i);
+                                    current_token.tag_name.push(i);
                                 }
-                                current_token.tag_name = String::from("comment");
                                 TokenType::Comment
                             } else {
                                 current_token.token_type
                             }
                         };
                     } else if i ==' ' {
-                        if !current_token.tag_name.starts_with("!--") {
+                        if !current_token.tag_name.starts_with("!--") && (current_token.token_type != TokenType::Comment) {
                             current_token.token_type = 
                                 if current_token.tag_name.to_uppercase().starts_with("!DOCTYPE") {
                                     current_token.tag_name = String::from("doctype");
@@ -214,6 +218,8 @@ pub mod handmade_html_parser {
                                     current_token.token_type
                                 };
                             current_state = TokenizeState::TagAttribute;
+                        } else {
+                            current_token.tag_name.push(i);
                         }
                     } else {
                         // push to tag_name
