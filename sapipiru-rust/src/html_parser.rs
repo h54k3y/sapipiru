@@ -55,6 +55,92 @@ pub mod handmade_html_parser {
         EndTagOpen,
     }
 
+    // from https://dom.spec.whatwg.org/#interface-node
+    enum NodeType {
+        Element,
+        Attribute,
+        Text,
+        CDataSection,
+        EntityReference,
+        Entity,
+        ProcessingInstruction,
+        Comment,
+        Document,
+        DocumentType,
+        DocumentFragment,
+        Notation,
+    }
+
+    struct DocumentType {
+        name: String,
+        public_id: String,
+        system_id: String,
+    }
+
+    struct DocumentNode {
+        url: String,
+        document: String,
+        compat_mode: String,
+        character_set: String,
+        charset: String,
+        input_encoding: String,
+        content_type: String,
+        doctype: DocumentType,
+
+    }
+
+    struct DOMTokenList {
+        length: i128,
+        value: String,
+    }
+
+    struct NamedNodeMap {
+        length: i128,
+    }
+
+    enum ShadowRootMode {
+        Open,
+        Closed,
+    }
+
+    struct ShadowRoot {
+        mode: ShadowRootMode,
+        //host: Element,
+    }
+
+    struct ElementNode {
+        namespace_uri: String,
+        prefix: String,
+        lcal_name: String,
+        tag_name: String,
+        id: String,
+        class_name: String,
+        class_list: DOMTokenList,
+        slot: String,
+        attributes: NamedNodeMap,
+        shadow_root: ShadowRoot,
+    }
+
+    enum Node {
+        Nil,
+        Node {
+            node_type: NodeType,
+            node_name: String,
+            base_uri: String,
+            is_connected: bool,
+            owner_document: DocumentNode,
+            parent_node: Box<Node>,
+            parent_element: ElementNode,
+            child_nodes: Vec<Box<Node>>,
+            first_child: Box<Node>,
+            last_child: Box<Node>,
+            previous_sibiling: Box<Node>,
+            next_sibiling: Box<Node>,
+            node_value: String,
+            text_content: String,
+        }
+    }
+
     pub fn parse_html(original_html : &String) -> String {
         let tokens: Vec<Token> = tokenize(&original_html);
         debug_print(tokens)
