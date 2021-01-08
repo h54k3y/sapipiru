@@ -71,12 +71,18 @@ pub mod handmade_html_parser {
         Notation,
     }
 
+    impl Default for NodeType {
+        fn default() -> Self { NodeType::Document }
+    }
+
+    #[derive(Default, Clone)]
     struct DocumentType {
         name: String,
         public_id: String,
         system_id: String,
     }
 
+    #[derive(Default, Clone)]
     struct DocumentNode {
         url: String,
         document: String,
@@ -89,25 +95,34 @@ pub mod handmade_html_parser {
 
     }
 
+    #[derive(Default, Clone)]
     struct DOMTokenList {
         length: i128,
         value: String,
     }
 
+    #[derive(Default, Clone)]
     struct NamedNodeMap {
         length: i128,
     }
 
+    #[derive(Clone)]
     enum ShadowRootMode {
         Open,
         Closed,
     }
 
+    impl Default for ShadowRootMode {
+        fn default() -> Self { ShadowRootMode::Open }
+    }
+
+    #[derive(Default, Clone)]
     struct ShadowRoot {
         mode: ShadowRootMode,
         //host: Element,
     }
 
+    #[derive(Default, Clone)]
     struct ElementNode {
         namespace_uri: String,
         prefix: String,
@@ -123,7 +138,7 @@ pub mod handmade_html_parser {
 
     enum Node {
         Nil,
-        Node {
+        NodeContent {
             node_type: NodeType,
             node_name: String,
             base_uri: String,
@@ -143,6 +158,7 @@ pub mod handmade_html_parser {
 
     pub fn parse_html(original_html : &String) -> String {
         let tokens: Vec<Token> = tokenize(&original_html);
+        create_DOM_tree();
         debug_print(tokens)
     }
 
@@ -282,6 +298,25 @@ pub mod handmade_html_parser {
         };
         tokens.push(eof_token);
         tokens
+    }
+
+    fn create_DOM_tree() {
+        let mut first_node = Node::NodeContent {
+            node_type: NodeType::Document,
+            node_name: Default::default(),
+            base_uri: Default::default(),
+            is_connected: false,
+            owner_document: Default::default(),
+            parent_node: Default::default(),
+            parent_element: Default::default(),
+            child_nodes: Default::default(),
+            first_child: Box::Node::new(),
+            last_child: Box<Node>::new(),
+            previous_sibiling: Box<Node>::new(),
+            next_sibiling: Box<Node>::new(),
+            node_value: Default::default(),
+            text_content: Default::default(),
+        }
     }
 
     fn convert_tokentype_to_string(token_type: TokenType) -> String {
