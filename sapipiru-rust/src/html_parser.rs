@@ -156,6 +156,23 @@ pub mod handmade_html_parser {
         }
     }
 
+    impl Default for Node {
+        fn default() -> Self { Node::Nil }
+    }
+
+    // TODO: will add other modes
+    enum Mode {
+        Initial,
+        BeforeHTML,
+        BeforeHead,
+        InHead,
+        AfterHead,
+        InBody,
+        AfterBody,
+        AfterAfterBody,
+    }
+
+
     pub fn parse_html(original_html : &String) -> String {
         let tokens: Vec<Token> = tokenize(&original_html);
         create_DOM_tree();
@@ -301,22 +318,24 @@ pub mod handmade_html_parser {
     }
 
     fn create_DOM_tree() {
-        let mut first_node = Node::NodeContent {
+        let mut doc_node = Node::NodeContent {
             node_type: NodeType::Document,
-            node_name: Default::default(),
-            base_uri: Default::default(),
+            node_name: String::from("#document"),
+            base_uri: String::default(), // will add
             is_connected: false,
             owner_document: Default::default(),
-            parent_node: Default::default(),
+            parent_node: Box::new(Node::Nil),
             parent_element: Default::default(),
-            child_nodes: Default::default(),
-            first_child: Box::Node::new(),
-            last_child: Box<Node>::new(),
-            previous_sibiling: Box<Node>::new(),
-            next_sibiling: Box<Node>::new(),
+            child_nodes: vec![Box::new(Node::Nil)],
+            first_child: Box::new(Node::Nil),
+            last_child: Box::new(Node::Nil),
+            previous_sibiling: Box::new(Node::Nil),
+            next_sibiling: Box::new(Node::Nil),
             node_value: Default::default(),
             text_content: Default::default(),
-        }
+        };
+        let mut mode = Mode::Initial;
+
     }
 
     fn convert_tokentype_to_string(token_type: TokenType) -> String {
