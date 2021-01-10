@@ -1,5 +1,7 @@
 pub mod handmade_html_parser {
     use std::ascii::AsciiExt;
+    use std::rc::Rc;
+    use std::cell::RefCell;
 
     #[derive(PartialEq, Eq, Debug)]
     enum TokenType {
@@ -126,7 +128,7 @@ pub mod handmade_html_parser {
     struct ElementNode {
         namespace_uri: String,
         prefix: String,
-        lcal_name: String,
+        local_name: String,
         tag_name: String,
         id: String,
         class_name: String,
@@ -136,7 +138,7 @@ pub mod handmade_html_parser {
         shadow_root: ShadowRoot,
     }
 
-    enum Node {
+    /*enum Node {
         Nil,
         NodeContent {
             node_type: NodeType,
@@ -154,13 +156,39 @@ pub mod handmade_html_parser {
             node_value: String,
             text_content: String,
         }
+    }*/
+
+    struct NodeContent {
+        node_type: NodeType,
+        node_name: String,
+        base_uri: String,
+        is_connected: bool,
+        owner_document: DocumentNode,
+        parent_element: ElementNode,
+        node_value: String,
+        text_content: String,
     }
 
-    impl Default for Node {
-        fn default() -> Self { Node::Nil }
+    struct DOMNode {
+        node_content: NodeContent,
+        parent_node: Rc<RefCell<DOMNode>>,
+        child_nodes: Vec<Rc<RefCell<DOMNode>>>,
+        first_child: Rc<RefCell<DOMNode>>,
+        last_child: Rc<RefCell<DOMNode>>,
+        previous_sibiling: Rc<RefCell<DOMNode>>,
+        next_sibiling: Rc<RefCell<DOMNode>>,
+    }
+
+    impl DOMNode {
+        fn increase(&mut self) {
+            for n in &self.child_nodes {
+                n.borrow_mut().increase();
+            }
+        }
     }
 
     // TODO: will add other modes
+    #[derive(PartialEq, Eq, Debug)]
     enum Mode {
         Initial,
         BeforeHTML,
@@ -175,8 +203,9 @@ pub mod handmade_html_parser {
 
     pub fn parse_html(original_html : &String) -> String {
         let tokens: Vec<Token> = tokenize(&original_html);
-        create_DOM_tree();
-        debug_print(tokens)
+        create_DOM_tree(tokens);
+        String::from("")
+        //debug_print(tokens)
     }
 
     fn tokenize(original_html : &String) -> Vec<Token> {
@@ -317,25 +346,73 @@ pub mod handmade_html_parser {
         tokens
     }
 
-    fn create_DOM_tree() {
-        let mut doc_node = Node::NodeContent {
-            node_type: NodeType::Document,
-            node_name: String::from("#document"),
-            base_uri: String::default(), // will add
-            is_connected: false,
-            owner_document: Default::default(),
-            parent_node: Box::new(Node::Nil),
-            parent_element: Default::default(),
-            child_nodes: vec![Box::new(Node::Nil)],
-            first_child: Box::new(Node::Nil),
-            last_child: Box::new(Node::Nil),
-            previous_sibiling: Box::new(Node::Nil),
-            next_sibiling: Box::new(Node::Nil),
-            node_value: Default::default(),
-            text_content: Default::default(),
-        };
+    // will follow https://html.spec.whatwg.org/multipage/parsing.html#data-state
+    // 13.2.6.4 The rules for parsing tokens in HTML content
+    fn create_DOM_tree(tokens: Vec<Token>) {
         let mut mode = Mode::Initial;
+        let mut current_node: DOMNode;
+        for i in &tokens {
+            /*if mode == Mode::Initial {
+                if i.token_type == TokenType::Doctype {
+                    let node_content = NodeContent {
+                        node_type: NodeType::Document,
+                        node_name: String::from("#document"),
+                        base_uri: String::default(), // will add
+                        is_connected: false,
+                        owner_document: Default::default(),
+                        parent_element: Default::default(),
+                        node_value: Default::default(),
+                        text_content: Default::default(),
+                    };
+                    current_node = new_node;
+                }
+            } else if mode == Mode::BeforeHTML {
+                if (i.token_type == TokenType::StratTag) && (i.tag_name.to_uppercase() == "HTML") {
+                    let mut element = ElementNode {
+                        namespace_uri: Default::default(),
+                        prefix: Default::default(),
+                        local_name: Default::default(),
+                        tag_name: i.tag_name.to_uppercase() ,
+                        id: Default::default(),
+                        class_name: Default::default(),
+                        class_list: Default::default(),
+                        slot: Default::default(),
+                        attributes: Default::default(),
+                        shadow_root: Default::default(),
+                    };
+                    let mut html_node = Node::NodeContent {
+                        node_type: NodeType::Element,
+                        node_name: i.tag_name.to_uppercase(),
+                        base_uri: String::default(), // will add
+                        is_connected: false,
+                        owner_document: Default::default(),
+                        parent_node: Box::new(Node::Nil),
+                        parent_element: Default::default(),
+                        child_nodes: vec![Box::new(Node::Nil)],
+                        first_child: Box::new(Node::Nil),
+                        last_child: Box::new(Node::Nil),
+                        previous_sibiling: Box::new(Node::Nil),
+                        next_sibiling: Box::new(Node::Nil),
+                        node_value: Default::default(),
+                        text_content: Default::default(),
+                    };
 
+
+                }
+            } else if mode == Mode::BeforeHead {
+
+            } else if mode == Mode::InHead {
+
+            } else if mode == Mode::AfterHead {
+
+            } else if mode == Mode::InBody {
+
+            } else if mode == Mode::AfterBody {
+
+            } else if mode == Mode::AfterAfterBody {
+
+            }
+        }*/
     }
 
     fn convert_tokentype_to_string(token_type: TokenType) -> String {
