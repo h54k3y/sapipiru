@@ -1,7 +1,7 @@
 pub mod handmade_html_parser {
     use std::ascii::AsciiExt;
-    use std::rc::Rc;
-    use std::cell::RefCell;
+    //use std::rc::Rc;
+    //use std::cell::RefCell;
 
     #[derive(PartialEq, Eq, Debug)]
     enum TokenType {
@@ -94,7 +94,6 @@ pub mod handmade_html_parser {
         input_encoding: String,
         content_type: String,
         doctype: DocumentType,
-
     }
 
     #[derive(Default, Clone)]
@@ -171,20 +170,13 @@ pub mod handmade_html_parser {
 
     struct DOMNode {
         node_content: NodeContent,
-        parent_node: Rc<RefCell<DOMNode>>,
-        child_nodes: Vec<Rc<RefCell<DOMNode>>>,
-        first_child: Rc<RefCell<DOMNode>>,
-        last_child: Rc<RefCell<DOMNode>>,
-        previous_sibiling: Rc<RefCell<DOMNode>>,
-        next_sibiling: Rc<RefCell<DOMNode>>,
-    }
-
-    impl DOMNode {
-        fn increase(&mut self) {
-            for n in &self.child_nodes {
-                n.borrow_mut().increase();
-            }
-        }
+        this_node_idx: i32,
+        parent_node_idx: i32,
+        child_nodes_idx: Vec<i32>,
+        first_child_idx: i32,
+        last_child_idx: i32,
+        previous_sibiling_idx: i32,
+        next_sibiling_idx: i32,
     }
 
     // TODO: will add other modes
@@ -350,69 +342,93 @@ pub mod handmade_html_parser {
     // 13.2.6.4 The rules for parsing tokens in HTML content
     fn create_DOM_tree(tokens: Vec<Token>) {
         let mut mode = Mode::Initial;
+        let mut dom_tree: Vec<DOMNode> = Vec::new();
         let mut current_node: DOMNode;
+        let mut doc_node: DOMNode;
+        let mut element_stack: Vec<ElementNode> = Vec::new();
+        let mut count = 0;
         for i in &tokens {
-            /*if mode == Mode::Initial {
-                if i.token_type == TokenType::Doctype {
-                    let node_content = NodeContent {
-                        node_type: NodeType::Document,
-                        node_name: String::from("#document"),
-                        base_uri: String::default(), // will add
-                        is_connected: false,
-                        owner_document: Default::default(),
-                        parent_element: Default::default(),
-                        node_value: Default::default(),
-                        text_content: Default::default(),
-                    };
-                    current_node = new_node;
-                }
-            } else if mode == Mode::BeforeHTML {
-                if (i.token_type == TokenType::StratTag) && (i.tag_name.to_uppercase() == "HTML") {
-                    let mut element = ElementNode {
-                        namespace_uri: Default::default(),
-                        prefix: Default::default(),
-                        local_name: Default::default(),
-                        tag_name: i.tag_name.to_uppercase() ,
-                        id: Default::default(),
-                        class_name: Default::default(),
-                        class_list: Default::default(),
-                        slot: Default::default(),
-                        attributes: Default::default(),
-                        shadow_root: Default::default(),
-                    };
-                    let mut html_node = Node::NodeContent {
-                        node_type: NodeType::Element,
-                        node_name: i.tag_name.to_uppercase(),
-                        base_uri: String::default(), // will add
-                        is_connected: false,
-                        owner_document: Default::default(),
-                        parent_node: Box::new(Node::Nil),
-                        parent_element: Default::default(),
-                        child_nodes: vec![Box::new(Node::Nil)],
-                        first_child: Box::new(Node::Nil),
-                        last_child: Box::new(Node::Nil),
-                        previous_sibiling: Box::new(Node::Nil),
-                        next_sibiling: Box::new(Node::Nil),
-                        node_value: Default::default(),
-                        text_content: Default::default(),
-                    };
+            match mode {
+                Mode::Initial => {
+                    if (i.token_type == TokenType::Doctype)
+                    {
+                        let content = NodeContent {
+                            node_type: NodeType::DocumentType,
+                            node_name: i.token_data,
+                            base_uri: Default::default(),
+                            is_connected: false,
+                            owner_document: Default::default(),
+                            parent_element: Default::default(),
+                            node_value: Default::default(),
+                            text_content: Default::default(),
+                        };
+                        doc_node = DOMNode {
+                            node_content: content,
+                            this_node_idx: count,
+                            parent_node_idx: -1,
+                            child_nodes_idx: Vec::new(),
+                            first_child_idx: -1,
+                            last_child_idx: -1,
+                            previous_sibiling_idx: -1,
+                            next_sibiling_idx: -1,
+                        };
+                        dom_tree.push(doc_node);
+                        current_node = doc_node;
+                        mode = Mode::BeforeHTML;
+                    }
+                },
+                Mode::BeforeHTML => {
+                    if (i.token_type == TokenType::StratTag) && (i.tag_name.to_uppercase() == "HTML") {
+                        // TODO: will add attribute
+                        let mut element_node = ElementNode {
+                            namespace_uri: Default::default(),
+                            prefix: Default::default(),
+                            local_name: Default::default(),
+                            tag_name: i.tag_name.to_uppercase(),
+                            id: Default::default(),
+                            class_name: Default::default(),
+                            class_list: Default::default(),
+                            slot: Default::default(),
+                            attributes: Default::default(),
+                            shadow_root: Default::default(),
+                        };
+                        element_stack.push(element_node);
 
-
-                }
-            } else if mode == Mode::BeforeHead {
-
-            } else if mode == Mode::InHead {
-
-            } else if mode == Mode::AfterHead {
-
-            } else if mode == Mode::InBody {
-
-            } else if mode == Mode::AfterBody {
-
-            } else if mode == Mode::AfterAfterBody {
-
+                        let content = NodeContent {
+                            node_type: NodeType::Element,
+                            node_name: i.tag_name.to_uppercase(),
+                            base_uri: Default::default(),
+                            is_connected: false,
+                            owner_document: Default::default(),
+                            parent_element: Default::default(),
+                            node_value: Default::default(),
+                            text_content: Default::default(),
+                        };
+                        let node = DOMNode {
+                            node_content: content,
+                            this_node_idx: count,
+                            parent_node_idx: current_node.this_node_idx,
+                            child_nodes_idx: Vec::new(),
+                            first_child_idx: -1,
+                            last_child_idx: -1,
+                            previous_sibiling_idx: -1,
+                            next_sibiling_idx: -1,
+                        };
+                        dom_tree.push(node);
+                        mode = Mode::BeforeHead;
+                    }
+                },
+                Mode::BeforeHead => {
+                    
+                },
+                Mode::InHead => ,
+                Mode::AfterHead => ,
+                Mode::InBody => ,
+                Mode::AfterBody => ,
+                Mode::AfterAfterBody => ,
             }
-        }*/
+            count += 1;
+        }
     }
 
     fn convert_tokentype_to_string(token_type: TokenType) -> String {
