@@ -58,6 +58,7 @@ pub mod handmade_html_parser {
     }
 
     // from https://dom.spec.whatwg.org/#interface-node
+    #[derive(PartialEq, Eq, Debug)]
     enum NodeType {
         Element,
         Attribute,
@@ -345,7 +346,7 @@ pub mod handmade_html_parser {
         let mut dom_tree: Vec<DOMNode> = Vec::new();
         let mut current_node: DOMNode;
         let mut doc_node: DOMNode;
-        let mut element_stack: Vec<ElementNode> = Vec::new();
+        let mut node_stack: Vec<DOMNode> = Vec::new();
         let mut count = 0;
         for i in &tokens {
             match mode {
@@ -392,8 +393,6 @@ pub mod handmade_html_parser {
                             attributes: Default::default(),
                             shadow_root: Default::default(),
                         };
-                        element_stack.push(element_node);
-
                         let content = NodeContent {
                             node_type: NodeType::Element,
                             node_name: i.tag_name.to_uppercase(),
@@ -419,6 +418,7 @@ pub mod handmade_html_parser {
                         current_node.last_child_idx = node.this_node_idx;
                         dom_tree.push(node);
                         current_node = node;
+                        node_stack.push(node);
                         mode = Mode::BeforeHead;
                     }
                 },
@@ -437,7 +437,6 @@ pub mod handmade_html_parser {
                             attributes: Default::default(),
                             shadow_root: Default::default(),
                         };
-                        element_stack.push(element_node);
 
                         let content = NodeContent {
                             node_type: NodeType::Element,
@@ -465,10 +464,108 @@ pub mod handmade_html_parser {
                         dom_tree.push(node);
                         current_node = node;
                         mode = Mode::InHead;
+                        node_stack = Default::default();
                     }
                 },
                 Mode::InHead => {
-                    
+                    if (i.token_type == TokenType::EndTag) && (i.tag_name.to_uppercase() == "HEAD") {
+                            mode = Mode::AfterHead;
+                    } else {
+                        if i.token_type == TokenType::StratTag {
+                            let mut element_node = ElementNode {
+                                namespace_uri: Default::default(),
+                                prefix: Default::default(),
+                                local_name: Default::default(),
+                                tag_name: i.tag_name.to_uppercase(),
+                                id: Default::default(),
+                                class_name: Default::default(),
+                                class_list: Default::default(),
+                                slot: Default::default(),
+                                attributes: Default::default(),
+                                shadow_root: Default::default(),
+                            };
+                            let content = NodeContent {
+                                node_type: NodeType::Element,
+                                node_name: i.tag_name.to_uppercase(),
+                                base_uri: Default::default(),
+                                is_connected: false,
+                                owner_document: Default::default(),
+                                parent_element: Default::default(),
+                                node_value: Default::default(),
+                                text_content: Default::default(),
+                            };
+                            let node = DOMNode {
+                                node_content: content,
+                                this_node_idx: count,
+                                parent_node_idx: -1,
+                                child_nodes_idx: Vec::new(),
+                                first_child_idx: -1,
+                                last_child_idx: -1,
+                                previous_sibiling_idx: -1,
+                                next_sibiling_idx: -1,
+                            };
+
+                            node.parent_node_idx = 
+                                if node_stack.is_empty() {
+                                    current_node.this_node_idx
+                                } else {
+                                    if node_stack[node_stack.len() -1].node_content.node_type == NodeType::Element {
+                                        //node.node_content.parent_element = 
+                                    }
+                                    node_stack[node_stack.len() -1].this_node_idx
+                                };
+                            current_node.child_nodes_idx.push(node.this_node_idx);
+                            current_node.first_child_idx = 
+                                if current_node.first_child_idx == -1 {
+                                    node.this_node_idx
+                                } else {
+                                    current_node.first_child_idx
+                                };
+                            current_node.last_child_idx = node.this_node_idx;
+                            if current_node.parent_node_idx == node.parent_node_idx {
+                                current_node.next_sibiling_idx = node.this_node_idx;
+                                node.previous_sibiling_idx = current_node.this_node_idx;
+                            }
+                            dom_tree.push(node);
+                            current_node = node;
+                            node_stack.push(node);
+                        } else if i.token_type == TokenType::EndTag {
+                            if node_stack[node_stack.len() -1].node_content.node_name == i.tag_name {
+                                node_stack.pop();
+                            }
+                        } else if i.token_type == TokenType::Text {
+                            let content = NodeContent {
+                                node_type: NodeType::Element,
+                                node_name: i.tag_name.to_uppercase(),
+                                base_uri: Default::default(),
+                                is_connected: false,
+                                owner_document: Default::default(),
+                                parent_element: Default::default(),
+                                node_value: i.token_data,
+                                text_content: Default::default(),
+                            };
+                            let node = DOMNode {
+                                node_content: content,
+                                this_node_idx: count,
+                                parent_node_idx: -1,
+                                child_nodes_idx: Vec::new(),
+                                first_child_idx: -1,
+                                last_child_idx: -1,
+                                previous_sibiling_idx: -1,
+                                next_sibiling_idx: -1,
+                            };
+                            node.parent_node_idx = 
+                                if node_stack.is_empty() {
+                                    // should not come here
+                                    -1
+                                } else {
+                                    if node_stack[node_stack.len() -1].node_content.node_type == NodeType::Element {
+                                        //node.node_content.parent_element = 
+                                    }
+                                    node_stack[node_stack.len() -1].this_node_idx
+                                };
+                        }
+                    }
                 },
                 Mode::AfterHead => ,
                 Mode::InBody => ,
