@@ -198,7 +198,7 @@ pub mod handmade_html_parser {
         let tokens: Vec<Token> = tokenize(&original_html);
         create_DOM_tree(tokens);
         String::from("")
-        //debug_print(tokens)
+        // print_token(tokens)
     }
 
     fn tokenize(original_html : &String) -> Vec<Token> {
@@ -341,7 +341,7 @@ pub mod handmade_html_parser {
 
     // will follow https://html.spec.whatwg.org/multipage/parsing.html#data-state
     // 13.2.6.4 The rules for parsing tokens in HTML content
-    fn create_DOM_tree(tokens: Vec<Token>) {
+    fn create_DOM_tree(tokens: Vec<Token>) -> Vec<DOMNode> {
         let mut mode = Mode::Initial;
         let mut dom_tree: Vec<DOMNode> = Vec::new();
         let mut current_node: DOMNode;
@@ -714,13 +714,19 @@ pub mod handmade_html_parser {
                     }
                 },
                 Mode::AfterBody => {
+                    if (i.token_type == TokenType::EndTag) && (i.tag_name.to_uppercase() == "HTML") {
+                        mode = Mode::AfterAfterBody;
+                    }
                 },
                 Mode::AfterAfterBody => {
-
+                    if (i.token_type == TokenType::EndOfFile) {
+                        break;
+                    }
                 },
             }
             count += 1;
         }
+        dom_tree
     }
 
     fn convert_tokentype_to_string(token_type: TokenType) -> String {
@@ -736,7 +742,7 @@ pub mod handmade_html_parser {
         result
     }
 
-    fn debug_print(tokens: Vec<Token>) -> String {
+    fn print_token(tokens: Vec<Token>) -> String {
         let mut result = String::new();
         let mut count: i32 = 0;
         for i in &tokens {
