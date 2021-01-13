@@ -58,7 +58,7 @@ pub mod handmade_html_parser {
     }
 
     // from https://dom.spec.whatwg.org/#interface-node
-    #[derive(PartialEq, Eq, Debug)]
+    #[derive(PartialEq, Eq, Debug, Clone)]
     enum NodeType {
         Element,
         Attribute,
@@ -158,6 +158,7 @@ pub mod handmade_html_parser {
         }
     }*/
 
+    #[derive(Default, Clone)]
     struct NodeContent {
         node_type: NodeType,
         node_name: String,
@@ -169,6 +170,7 @@ pub mod handmade_html_parser {
         text_content: String,
     }
 
+    #[derive(Default, Clone)]
     struct DOMNode {
         node_content: NodeContent,
         this_node_idx: i32,
@@ -344,18 +346,18 @@ pub mod handmade_html_parser {
     fn create_DOM_tree(tokens: Vec<Token>) -> Vec<DOMNode> {
         let mut mode = Mode::Initial;
         let mut dom_tree: Vec<DOMNode> = Vec::new();
-        let mut current_node: DOMNode;
+        let mut current_node: DOMNode = Default::default();
         let mut doc_node: DOMNode;
         let mut node_stack: Vec<DOMNode> = Vec::new();
         let mut count = 0;
         for i in &tokens {
             match mode {
                 Mode::Initial => {
-                    if (i.token_type == TokenType::Doctype)
+                    if i.token_type == TokenType::Doctype
                     {
                         let content = NodeContent {
                             node_type: NodeType::DocumentType,
-                            node_name: i.token_data,
+                            node_name: i.token_data.clone(),
                             base_uri: Default::default(),
                             is_connected: false,
                             owner_document: Default::default(),
@@ -373,7 +375,7 @@ pub mod handmade_html_parser {
                             previous_sibiling_idx: -1,
                             next_sibiling_idx: -1,
                         };
-                        dom_tree.push(doc_node);
+                        dom_tree.push(doc_node.clone());
                         current_node = doc_node;
                         mode = Mode::BeforeHTML;
                     }
@@ -381,7 +383,7 @@ pub mod handmade_html_parser {
                 Mode::BeforeHTML => {
                     if (i.token_type == TokenType::StratTag) && (i.tag_name.to_uppercase() == "HTML") {
                         // TODO: will add attribute
-                        let mut element_node = ElementNode {
+                        let element_node = ElementNode {
                             namespace_uri: Default::default(),
                             prefix: Default::default(),
                             local_name: Default::default(),
@@ -416,16 +418,16 @@ pub mod handmade_html_parser {
                         current_node.child_nodes_idx.push(node.this_node_idx);
                         current_node.first_child_idx = node.this_node_idx;
                         current_node.last_child_idx = node.this_node_idx;
-                        dom_tree.push(node);
-                        current_node = node;
-                        node_stack.push(node);
+                        dom_tree.push(node.clone());
+                        current_node = node.clone();
+                        node_stack.push(node.clone());
                         mode = Mode::BeforeHead;
                     }
                 },
                 Mode::BeforeHead => {
                     if (i.token_type == TokenType::StratTag) && (i.tag_name.to_uppercase() == "HEAD") {
                         // TODO: will add attribute
-                        let mut element_node = ElementNode {
+                        let element_node = ElementNode {
                             namespace_uri: Default::default(),
                             prefix: Default::default(),
                             local_name: Default::default(),
@@ -461,8 +463,8 @@ pub mod handmade_html_parser {
                         current_node.child_nodes_idx.push(node.this_node_idx);
                         current_node.first_child_idx = node.this_node_idx;
                         current_node.last_child_idx = node.this_node_idx;
-                        dom_tree.push(node);
-                        current_node = node;
+                        dom_tree.push(node.clone());
+                        current_node = node.clone();
                         mode = Mode::InHead;
                         node_stack = Default::default();
                     }
@@ -472,7 +474,7 @@ pub mod handmade_html_parser {
                             mode = Mode::AfterHead;
                     } else {
                         if i.token_type == TokenType::StratTag {
-                            let mut element_node = ElementNode {
+                            let element_node = ElementNode {
                                 namespace_uri: Default::default(),
                                 prefix: Default::default(),
                                 local_name: Default::default(),
@@ -494,7 +496,7 @@ pub mod handmade_html_parser {
                                 node_value: Default::default(),
                                 text_content: Default::default(),
                             };
-                            let node = DOMNode {
+                            let mut node = DOMNode {
                                 node_content: content,
                                 this_node_idx: count,
                                 parent_node_idx: -1,
@@ -526,9 +528,9 @@ pub mod handmade_html_parser {
                                 current_node.next_sibiling_idx = node.this_node_idx;
                                 node.previous_sibiling_idx = current_node.this_node_idx;
                             }
-                            dom_tree.push(node);
-                            current_node = node;
-                            node_stack.push(node);
+                            dom_tree.push(node.clone());
+                            current_node = node.clone();
+                            node_stack.push(node.clone());
                         } else if i.token_type == TokenType::EndTag {
                             if node_stack[node_stack.len() -1].node_content.node_name == i.tag_name {
                                 node_stack.pop();
@@ -541,10 +543,10 @@ pub mod handmade_html_parser {
                                 is_connected: false,
                                 owner_document: Default::default(),
                                 parent_element: Default::default(),
-                                node_value: i.token_data,
+                                node_value: i.token_data.clone(),
                                 text_content: Default::default(),
                             };
-                            let node = DOMNode {
+                            let mut node = DOMNode {
                                 node_content: content,
                                 this_node_idx: count,
                                 parent_node_idx: -1,
@@ -570,7 +572,7 @@ pub mod handmade_html_parser {
                 Mode::AfterHead => {
                     if (i.token_type == TokenType::StratTag) && (i.tag_name.to_uppercase() == "BODY") {
                         // TODO: will add attribute
-                        let mut element_node = ElementNode {
+                        let element_node = ElementNode {
                             namespace_uri: Default::default(),
                             prefix: Default::default(),
                             local_name: Default::default(),
@@ -606,8 +608,8 @@ pub mod handmade_html_parser {
                         current_node.child_nodes_idx.push(node.this_node_idx);
                         current_node.first_child_idx = node.this_node_idx;
                         current_node.last_child_idx = node.this_node_idx;
-                        dom_tree.push(node);
-                        current_node = node;
+                        dom_tree.push(node.clone());
+                        current_node = node.clone();
                         mode = Mode::InBody;
                         node_stack = Default::default();
                     }
@@ -617,7 +619,7 @@ pub mod handmade_html_parser {
                         mode = Mode::AfterBody;
                     } else {
                         if i.token_type == TokenType::StratTag {
-                            let mut element_node = ElementNode {
+                            let element_node = ElementNode {
                                 namespace_uri: Default::default(),
                                 prefix: Default::default(),
                                 local_name: Default::default(),
@@ -639,7 +641,7 @@ pub mod handmade_html_parser {
                                 node_value: Default::default(),
                                 text_content: Default::default(),
                             };
-                            let node = DOMNode {
+                            let mut node = DOMNode {
                                 node_content: content,
                                 this_node_idx: count,
                                 parent_node_idx: -1,
@@ -671,9 +673,9 @@ pub mod handmade_html_parser {
                                 current_node.next_sibiling_idx = node.this_node_idx;
                                 node.previous_sibiling_idx = current_node.this_node_idx;
                             }
-                            dom_tree.push(node);
-                            current_node = node;
-                            node_stack.push(node);
+                            dom_tree.push(node.clone());
+                            current_node = node.clone();
+                            node_stack.push(node.clone());
                         } else if i.token_type == TokenType::EndTag {
                             if node_stack[node_stack.len() -1].node_content.node_name == i.tag_name {
                                 node_stack.pop();
@@ -686,10 +688,10 @@ pub mod handmade_html_parser {
                                 is_connected: false,
                                 owner_document: Default::default(),
                                 parent_element: Default::default(),
-                                node_value: i.token_data,
+                                node_value: i.token_data.clone(),
                                 text_content: Default::default(),
                             };
-                            let node = DOMNode {
+                            let mut node = DOMNode {
                                 node_content: content,
                                 this_node_idx: count,
                                 parent_node_idx: -1,
@@ -709,7 +711,6 @@ pub mod handmade_html_parser {
                                     }
                                     node_stack[node_stack.len() -1].this_node_idx
                                 };
-                            }
                         }
                     }
                 },
@@ -719,7 +720,7 @@ pub mod handmade_html_parser {
                     }
                 },
                 Mode::AfterAfterBody => {
-                    if (i.token_type == TokenType::EndOfFile) {
+                    if i.token_type == TokenType::EndOfFile {
                         break;
                     }
                 },
