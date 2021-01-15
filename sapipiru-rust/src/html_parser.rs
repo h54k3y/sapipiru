@@ -124,7 +124,7 @@ pub mod handmade_html_parser {
         //host: Element,
     }
 
-    #[derive(Default, Clone)]
+    /*#[derive(Default, Clone)]
     struct ElementNode {
         namespace_uri: String,
         prefix: String,
@@ -136,7 +136,7 @@ pub mod handmade_html_parser {
         slot: String,
         attributes: NamedNodeMap,
         shadow_root: ShadowRoot,
-    }
+    }*/
 
     /*enum Node {
         Nil,
@@ -159,6 +159,7 @@ pub mod handmade_html_parser {
     }*/
 
     #[derive(Default, Clone)]
+    /*
     struct NodeContent {
         node_type: NodeType,
         node_name: String,
@@ -168,6 +169,13 @@ pub mod handmade_html_parser {
         parent_element: ElementNode,
         node_value: String,
         text_content: String,
+    }*/
+    struct NodeContent {
+        node_type: NodeType,
+        node_name: String,
+        node_value: String,
+        parent_document_idx: i32,
+        parent_element_idx: i32,
     }
 
     #[derive(Default, Clone)]
@@ -358,12 +366,9 @@ pub mod handmade_html_parser {
                         let content = NodeContent {
                             node_type: NodeType::DocumentType,
                             node_name: i.token_data.clone(),
-                            base_uri: Default::default(),
-                            is_connected: false,
-                            owner_document: Default::default(),
-                            parent_element: Default::default(),
                             node_value: Default::default(),
-                            text_content: Default::default(),
+                            parent_document_idx: -1,
+                            parent_element_idx: -1,
                         };
                         doc_node = DOMNode {
                             node_content: content,
@@ -383,27 +388,12 @@ pub mod handmade_html_parser {
                 Mode::BeforeHTML => {
                     if (i.token_type == TokenType::StratTag) && (i.tag_name.to_uppercase() == "HTML") {
                         // TODO: will add attribute
-                        let element_node = ElementNode {
-                            namespace_uri: Default::default(),
-                            prefix: Default::default(),
-                            local_name: Default::default(),
-                            tag_name: i.tag_name.to_uppercase(),
-                            id: Default::default(),
-                            class_name: Default::default(),
-                            class_list: Default::default(),
-                            slot: Default::default(),
-                            attributes: Default::default(),
-                            shadow_root: Default::default(),
-                        };
                         let content = NodeContent {
                             node_type: NodeType::Element,
                             node_name: i.tag_name.to_uppercase(),
-                            base_uri: Default::default(),
-                            is_connected: false,
-                            owner_document: Default::default(),
-                            parent_element: Default::default(),
                             node_value: Default::default(),
-                            text_content: Default::default(),
+                            parent_document_idx: 0,
+                            parent_element_idx: -1,
                         };
                         let node = DOMNode {
                             node_content: content,
@@ -427,28 +417,12 @@ pub mod handmade_html_parser {
                 Mode::BeforeHead => {
                     if (i.token_type == TokenType::StratTag) && (i.tag_name.to_uppercase() == "HEAD") {
                         // TODO: will add attribute
-                        let element_node = ElementNode {
-                            namespace_uri: Default::default(),
-                            prefix: Default::default(),
-                            local_name: Default::default(),
-                            tag_name: i.tag_name.to_uppercase(),
-                            id: Default::default(),
-                            class_name: Default::default(),
-                            class_list: Default::default(),
-                            slot: Default::default(),
-                            attributes: Default::default(),
-                            shadow_root: Default::default(),
-                        };
-
                         let content = NodeContent {
                             node_type: NodeType::Element,
                             node_name: i.tag_name.to_uppercase(),
-                            base_uri: Default::default(),
-                            is_connected: false,
-                            owner_document: Default::default(),
-                            parent_element: Default::default(),
                             node_value: Default::default(),
-                            text_content: Default::default(),
+                            parent_document_idx: 0,
+                            parent_element_idx: -1,
                         };
                         let node = DOMNode {
                             node_content: content,
@@ -474,27 +448,12 @@ pub mod handmade_html_parser {
                             mode = Mode::AfterHead;
                     } else {
                         if i.token_type == TokenType::StratTag {
-                            let element_node = ElementNode {
-                                namespace_uri: Default::default(),
-                                prefix: Default::default(),
-                                local_name: Default::default(),
-                                tag_name: i.tag_name.to_uppercase(),
-                                id: Default::default(),
-                                class_name: Default::default(),
-                                class_list: Default::default(),
-                                slot: Default::default(),
-                                attributes: Default::default(),
-                                shadow_root: Default::default(),
-                            };
                             let content = NodeContent {
                                 node_type: NodeType::Element,
                                 node_name: i.tag_name.to_uppercase(),
-                                base_uri: Default::default(),
-                                is_connected: false,
-                                owner_document: Default::default(),
-                                parent_element: Default::default(),
                                 node_value: Default::default(),
-                                text_content: Default::default(),
+                                parent_document_idx: 0,
+                                parent_element_idx: -1,
                             };
                             let mut node = DOMNode {
                                 node_content: content,
@@ -539,12 +498,9 @@ pub mod handmade_html_parser {
                             let content = NodeContent {
                                 node_type: NodeType::Element,
                                 node_name: i.tag_name.to_uppercase(),
-                                base_uri: Default::default(),
-                                is_connected: false,
-                                owner_document: Default::default(),
-                                parent_element: Default::default(),
-                                node_value: i.token_data.clone(),
-                                text_content: Default::default(),
+                                node_value: Default::default(),
+                                parent_document_idx: 0,
+                                parent_element_idx: -1,
                             };
                             let mut node = DOMNode {
                                 node_content: content,
@@ -572,28 +528,12 @@ pub mod handmade_html_parser {
                 Mode::AfterHead => {
                     if (i.token_type == TokenType::StratTag) && (i.tag_name.to_uppercase() == "BODY") {
                         // TODO: will add attribute
-                        let element_node = ElementNode {
-                            namespace_uri: Default::default(),
-                            prefix: Default::default(),
-                            local_name: Default::default(),
-                            tag_name: i.tag_name.to_uppercase(),
-                            id: Default::default(),
-                            class_name: Default::default(),
-                            class_list: Default::default(),
-                            slot: Default::default(),
-                            attributes: Default::default(),
-                            shadow_root: Default::default(),
-                        };
-
                         let content = NodeContent {
                             node_type: NodeType::Element,
                             node_name: i.tag_name.to_uppercase(),
-                            base_uri: Default::default(),
-                            is_connected: false,
-                            owner_document: Default::default(),
-                            parent_element: Default::default(),
                             node_value: Default::default(),
-                            text_content: Default::default(),
+                            parent_document_idx: 0,
+                            parent_element_idx: -1,
                         };
                         let node = DOMNode {
                             node_content: content,
@@ -619,27 +559,12 @@ pub mod handmade_html_parser {
                         mode = Mode::AfterBody;
                     } else {
                         if i.token_type == TokenType::StratTag {
-                            let element_node = ElementNode {
-                                namespace_uri: Default::default(),
-                                prefix: Default::default(),
-                                local_name: Default::default(),
-                                tag_name: i.tag_name.to_uppercase(),
-                                id: Default::default(),
-                                class_name: Default::default(),
-                                class_list: Default::default(),
-                                slot: Default::default(),
-                                attributes: Default::default(),
-                                shadow_root: Default::default(),
-                            };
                             let content = NodeContent {
                                 node_type: NodeType::Element,
                                 node_name: i.tag_name.to_uppercase(),
-                                base_uri: Default::default(),
-                                is_connected: false,
-                                owner_document: Default::default(),
-                                parent_element: Default::default(),
                                 node_value: Default::default(),
-                                text_content: Default::default(),
+                                parent_document_idx: 0,
+                                parent_element_idx: -1,
                             };
                             let mut node = DOMNode {
                                 node_content: content,
@@ -684,12 +609,9 @@ pub mod handmade_html_parser {
                             let content = NodeContent {
                                 node_type: NodeType::Element,
                                 node_name: i.tag_name.to_uppercase(),
-                                base_uri: Default::default(),
-                                is_connected: false,
-                                owner_document: Default::default(),
-                                parent_element: Default::default(),
-                                node_value: i.token_data.clone(),
-                                text_content: Default::default(),
+                                node_value: Default::default(),
+                                parent_document_idx: 0,
+                                parent_element_idx: -1,
                             };
                             let mut node = DOMNode {
                                 node_content: content,
