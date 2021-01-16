@@ -353,77 +353,48 @@ pub mod handmade_html_parser {
     fn create_DOM_tree(tokens: Vec<Token>) -> Vec<DOMNode> {
         let mut mode = Mode::Initial;
         let mut dom_tree: Vec<DOMNode> = Vec::new();
-        let mut current_node: DOMNode = Default::default();
-        let mut doc_node: DOMNode;
-        let mut node_stack: Vec<DOMNode> = Vec::new();
+        let mut idx_of_node_stack: Vec<i32> = Vec::new();
         let mut count = 0;
         for i in &tokens {
-            if (mode == Mode::Initial) && (i.token_type == TokenType::Doctype) {
-                let content = NodeContent {
-                    node_type: NodeType::DocumentType,
-                    node_name: i.token_data.clone(),
-                    node_value: Default::default(),
-                };
-                doc_node = DOMNode {
-                    node_content: content,
-                    this_node_idx: count,
-                    parent_node_idx: -1,
-                    child_nodes_idx: Vec::new(),
-                    first_child_idx: -1,
-                    last_child_idx: -1,
-                    previous_sibiling_idx: -1,
-                    next_sibiling_idx: -1,
-                };
-                dom_tree.push(doc_node.clone());
-                mode = Mode::BeforeHTML;
-            } else if i.token_type == TokenType::StratTag {
-                let content = NodeContent {
-                    node_type: NodeType::Element,
-                    node_name: i.tag_name.to_uppercase(),
-                    node_value: Default::default(),
-                };
-                let mut node = DOMNode {
-                    node_content: content,
-                    this_node_idx: count,
-                    parent_node_idx: -1,
-                    child_nodes_idx: Vec::new(),
-                    first_child_idx: -1,
-                    last_child_idx: -1,
-                    previous_sibiling_idx: -1,
-                    next_sibiling_idx: -1,
-                };
-
-                if !node_stack.is_empty() {
-                    let last_stack_idx = node_stack.len() -1;
-                    node.parent_node_idx = node_stack[node_stack.len() -1].this_node_idx;
-                    node_stack[last_stack_idx].child_nodes_idx.push(node.this_node_idx);
-                    node_stack[last_stack_idx].first_child_idx = 
-                        if node_stack[last_stack_idx].first_child_idx == -1 {
-                            node.this_node_idx
-                        } else {
-                            node_stack[last_stack_idx].first_child_idx
+            match i.token_type {
+                TokenType::Doctype => {
+                    if mode == Mode::Initial {
+                        let content = NodeContent {
+                            node_type: NodeType::DocumentType,
+                            node_name: i.token_data.clone(),
+                            node_value: Default::default(),
                         };
-                    node_stack[last_stack_idx].last_child_idx = node.this_node_idx;
-                }
-
-                if dom_tree[node_stack.len() -1].parent_node_idx == node.parent_node_idx {
-                    dom_tree[node_stack.len() -1].next_sibiling_idx = node.this_node_idx;
-                    node.previous_sibiling_idx = dom_tree[node_stack.len() -1].this_node_idx;
-                }
-
-                dom_tree.push(node.clone());
-                node_stack.push(node.clone());
-
-                let mut current_attribute_node: DOMNode = Default::default();
-                for j in &i.tag_attribute {
-                    count += 1;
-                    let attribute_content = NodeContent {
-                        node_type: NodeType::Attribute,
-                        node_name: i.tag_name.to_uppercase(),
-                        node_value: Default::default(),
+        
+                        let node = DOMNode {
+                            node_content: content,
+                            this_node_idx: count,
+                            parent_node_idx: -1,
+                            child_nodes_idx: Vec::new(),
+                            first_child_idx: -1,
+                            last_child_idx: -1,
+                            previous_sibiling_idx: -1,
+                            next_sibiling_idx: -1,
+                        };
+        
+                        dom_tree.push(node);
+                        mode = Mode::BeforeHTML;
+                    }
+                },
+                TokenType::StratTag | TokenType::Text | TokenType::Comment=> {
+                    let current_node_type = match i.token_type {
+                        TokenType::StratTag => NodeType::Element,
+                        TokenType::Text => NodeType::Text,
+                        TokenType::Comment => NodeType::Comment,
+                        _ => NodeType::default(),
                     };
-                    let mut attribute_node = DOMNode {
-                        node_content: attribute_content,
+                    let content = NodeContent {
+                        node_type: current_node_type,
+                        node_name: i.tag_name.to_uppercase(),
+                        node_value: i.token_data.clone(),
+                    };
+    
+                    let mut node = DOMNode {
+                        node_content: content,
                         this_node_idx: count,
                         parent_node_idx: -1,
                         child_nodes_idx: Vec::new(),
@@ -432,88 +403,101 @@ pub mod handmade_html_parser {
                         previous_sibiling_idx: -1,
                         next_sibiling_idx: -1,
                     };
-
-                    attribute_node.parent_node_idx = 
-                        if node_stack.is_empty() {
-                            -1
-                        } else {
-                            node_stack[node_stack.len() -1].this_node_idx
-                        };
-                    node.child_nodes_idx.push(node.this_node_idx);
-                    node.first_child_idx = 
-                        if node.first_child_idx == -1 {
-                            attribute_node.this_node_idx
-                        } else {
-                            node.first_child_idx
-                        };
-                    node.last_child_idx = attribute_node.this_node_idx;
-                    if node.this_node_idx + 1 < attribute_node.this_node_idx {
-                        attribute_node.previous_sibiling_idx = current_attribute_node.this_node_idx;
+    
+                    if !idx_of_node_stack.is_empty() {
+                        let last_stack_idx = idx_of_node_stack.len() -1;
+                        let last_stack_idx_in_dom: usize = idx_of_node_stack[last_stack_idx].try_into().unwrap();
+                        node.parent_node_idx = dom_tree[last_stack_idx_in_dom].this_node_idx;
+                        dom_tree[last_stack_idx_in_dom].child_nodes_idx.push(node.this_node_idx);
+                        dom_tree[last_stack_idx_in_dom].first_child_idx = 
+                            if dom_tree[last_stack_idx_in_dom].first_child_idx == -1 {
+                                node.this_node_idx
+                            } else {
+                                dom_tree[last_stack_idx_in_dom].first_child_idx
+                            };
+                        dom_tree[last_stack_idx_in_dom].last_child_idx = node.this_node_idx;
+                        if dom_tree[last_stack_idx_in_dom].parent_node_idx == node.parent_node_idx {
+                            node.previous_sibiling_idx = dom_tree[last_stack_idx_in_dom].this_node_idx;
+                            dom_tree[last_stack_idx_in_dom].next_sibiling_idx = node.this_node_idx;
+                        }
                     }
-
-                    if current_attribute_node.this_node_idx > 0 {
-                        current_attribute_node.next_sibiling_idx = attribute_node.this_node_idx;
+    
+                    if i.token_type == TokenType::StratTag {
+                        idx_of_node_stack.push(node.this_node_idx);
                     }
-
-                    dom_tree.push(attribute_node.clone());
-                    current_attribute_node = attribute_node;
-                }
-
-                if (mode == Mode::BeforeHTML) && (i.tag_name.to_uppercase() == "HTML") {
-                    mode = Mode::BeforeHead;
-                } else if (mode == Mode::BeforeHead) && (i.tag_name.to_uppercase() == "HEAD") {
-                    mode = Mode::InHead;
-                } else if (mode == Mode::AfterHead) && (i.tag_name.to_uppercase() == "BODY") {
-                    mode = Mode::InBody;
-                }
-            } else if i.token_type == TokenType::Text {
-                let content = NodeContent {
-                    node_type: NodeType::Element,
-                    node_name: i.tag_name.to_uppercase(),
-                    node_value: Default::default(),
-                };
-                let mut node = DOMNode {
-                    node_content: content,
-                    this_node_idx: count,
-                    parent_node_idx: -1,
-                    child_nodes_idx: Vec::new(),
-                    first_child_idx: -1,
-                    last_child_idx: -1,
-                    previous_sibiling_idx: -1,
-                    next_sibiling_idx: -1,
-                };
-
-                if !node_stack.is_empty() {
-                    let last_stack_idx = node_stack.len() -1;
-                    node.parent_node_idx = node_stack[node_stack.len() -1].this_node_idx;
-                    node_stack[last_stack_idx].child_nodes_idx.push(node.this_node_idx);
-                    node_stack[last_stack_idx].first_child_idx = 
-                        if node_stack[last_stack_idx].first_child_idx == -1 {
-                            node.this_node_idx
-                        } else {
-                            node_stack[last_stack_idx].first_child_idx
+                    dom_tree.push(node);
+                    let parent_element_idx = dom_tree.len() - 1;
+    
+                    // Handle attribute
+                    for j in &i.tag_attribute {
+                        count += 1;
+                        let attribute_content = NodeContent {
+                            node_type: NodeType::Attribute,
+                            node_name: j.0.clone(),
+                            node_value: j.1.clone(),
                         };
-                    let parent_previous_child : usize= node_stack[last_stack_idx].last_child_idx.try_into().unwrap();
-                    node_stack[last_stack_idx].last_child_idx = node.this_node_idx;
-                    dom_tree[parent_previous_child].next_sibiling_idx = node.this_node_idx;
-                    node.previous_sibiling_idx = dom_tree[parent_previous_child].this_node_idx;
-                }
-
-            } else if i.token_type == TokenType::EndTag {
-                if node_stack[node_stack.len() -1].node_content.node_name == i.tag_name {
-                    node_stack.pop();
-                }
-
-                if (mode == Mode::InHead) && (i.tag_name.to_uppercase() == "HEAD") {
-                    mode = Mode::AfterHead;
-                } else if (mode == Mode::InBody) && (i.tag_name.to_uppercase() == "BODY") {
-                    mode = Mode::AfterBody;
-                } else if (mode == Mode::AfterBody) && (i.tag_name.to_uppercase() == "HTML") {
-                    mode = Mode::AfterAfterBody;
-                } else if (mode == Mode::AfterAfterBody) && (i.token_type == TokenType::EndOfFile) {
-                    break;
-                }
-            }
+                        let mut attribute_node = DOMNode {
+                            node_content: attribute_content,
+                            this_node_idx: count,
+                            parent_node_idx: -1,
+                            child_nodes_idx: Vec::new(),
+                            first_child_idx: -1,
+                            last_child_idx: -1,
+                            previous_sibiling_idx: -1,
+                            next_sibiling_idx: -1,
+                        };
+    
+                        attribute_node.parent_node_idx = dom_tree[parent_element_idx].this_node_idx;
+                        dom_tree[parent_element_idx].child_nodes_idx.push(attribute_node.this_node_idx);
+                        dom_tree[parent_element_idx].first_child_idx = 
+                            if dom_tree[parent_element_idx].first_child_idx == -1 {
+                                attribute_node.this_node_idx
+                            } else {
+                                dom_tree[parent_element_idx].first_child_idx
+                            };
+                            dom_tree[parent_element_idx].last_child_idx = attribute_node.this_node_idx;
+                        let last_stack_idx = idx_of_node_stack.len() -1;
+                        let last_stack_idx_in_dom: usize = idx_of_node_stack[last_stack_idx].try_into().unwrap();
+                        let parent_last_child_idx: usize = dom_tree[last_stack_idx_in_dom].last_child_idx.try_into().unwrap();
+                        if dom_tree[parent_last_child_idx].node_content.node_type == NodeType::Attribute {
+                            attribute_node.previous_sibiling_idx = dom_tree[parent_last_child_idx].this_node_idx;
+                            dom_tree[parent_last_child_idx].next_sibiling_idx = attribute_node.this_node_idx;
+                        }
+    
+                        dom_tree.push(attribute_node);
+                    }
+    
+                    if (mode == Mode::BeforeHTML) && (i.tag_name.to_uppercase() == "HTML") {
+                        mode = Mode::BeforeHead;
+                    } else if (mode == Mode::BeforeHead) && (i.tag_name.to_uppercase() == "HEAD") {
+                        mode = Mode::InHead;
+                    } else if (mode == Mode::AfterHead) && (i.tag_name.to_uppercase() == "BODY") {
+                        mode = Mode::InBody;
+                    }
+                },
+                TokenType::EndTag => {
+                    let last_stack_idx = idx_of_node_stack.len() -1;
+                    let last_stack_idx_in_dom: usize = idx_of_node_stack[last_stack_idx].try_into().unwrap();
+                    if dom_tree[last_stack_idx_in_dom].node_content.node_name == i.tag_name {
+                        idx_of_node_stack.pop();
+                    }
+    
+                    if (mode == Mode::InHead) && (i.tag_name.to_uppercase() == "HEAD") {
+                        mode = Mode::AfterHead;
+                    } else if (mode == Mode::InBody) && (i.tag_name.to_uppercase() == "BODY") {
+                        mode = Mode::AfterBody;
+                    } else if (mode == Mode::AfterBody) && (i.tag_name.to_uppercase() == "HTML") {
+                        mode = Mode::AfterAfterBody;
+                    }
+                },
+                TokenType::EndOfFile => {
+                    if mode == Mode::AfterAfterBody {
+                        break;
+                    }
+                },
+                _ => {
+                },
+            };
             count += 1;
         }
         dom_tree
