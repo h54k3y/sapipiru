@@ -3,6 +3,7 @@ pub mod handmade_html_parser {
     //use std::rc::Rc;
     //use std::cell::RefCell;
     use std::convert::TryInto;
+    use crate::css_parser::handmade_css_parser;
 
     #[derive(PartialEq, Eq, Debug)]
     enum TokenType {
@@ -381,6 +382,10 @@ pub mod handmade_html_parser {
                     }
                 },
                 TokenType::StratTag | TokenType::Text | TokenType::Comment=> {
+                    if (mode == Mode::InHead) && (i.tag_name.to_lowercase() == "link") {
+                        find_css_path(i.clone());
+                    }
+
                     let current_node_type = match i.token_type {
                         TokenType::StratTag => NodeType::Element,
                         TokenType::Text => NodeType::Text,
@@ -503,6 +508,22 @@ pub mod handmade_html_parser {
         dom_tree
     }
 
+    fn find_css_path(token: Token) {
+        let mut is_stylesheet: bool = false;
+        let mut herf_link: String =Default::default();
+        for i in token.tag_attribute {
+            if (i.0.to_lowercase() == "rel") && (i.1.to_lowercase() == "stylesheet") {
+                is_stylesheet = true;
+            } else if i.0.to_lowercase() == "href" {
+                herf_link = i.1;
+            }
+        }
+
+        if is_stylesheet {
+            handmade_css_parser::get_css(herf_link);
+        }
+    }
+
     fn convert_tokentype_to_string(token_type: TokenType) -> String {
         let result: String = match token_type {
             TokenType::Unknown => String::from("Unknown"),
@@ -543,4 +564,5 @@ pub mod handmade_html_parser {
         //println!("{}", result);   //for debug
         result
     }
+
 }
