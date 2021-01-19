@@ -212,6 +212,7 @@ pub mod handmade_html_parser {
     }
 
     fn tokenize(original_html : &String) -> Vec<Token> {
+        println!("start tokenize"); 
         let mut current_state = TokenizeState::Data;
         let mut current_token: Token = Default::default();
         let mut tokens: Vec<Token> = Vec::new();
@@ -346,12 +347,14 @@ pub mod handmade_html_parser {
             tag_attribute: Vec::new(),
         };
         tokens.push(eof_token);
+        println!("end tokenize"); 
         tokens
     }
 
     // will follow https://html.spec.whatwg.org/multipage/parsing.html#data-state
     // 13.2.6.4 The rules for parsing tokens in HTML content
     fn create_DOM_tree(tokens: Vec<Token>) -> Vec<DOMNode> {
+        println!("start create DOM tree"); 
         let mut mode = Mode::Initial;
         let mut dom_tree: Vec<DOMNode> = Vec::new();
         let mut idx_of_node_stack: Vec<i32> = Vec::new();
@@ -377,7 +380,11 @@ pub mod handmade_html_parser {
                             next_sibiling_idx: -1,
                         };
         
+                        println!("node_name");
+                        println!("{}", node.node_content.node_name);
+                        idx_of_node_stack.push(node.this_node_idx);
                         dom_tree.push(node);
+                        count += 1;
                         mode = Mode::BeforeHTML;
                     }
                 },
@@ -410,8 +417,7 @@ pub mod handmade_html_parser {
                     };
     
                     if !idx_of_node_stack.is_empty() {
-                        let last_stack_idx = idx_of_node_stack.len() -1;
-                        let last_stack_idx_in_dom: usize = idx_of_node_stack[last_stack_idx].try_into().unwrap();
+                        let last_stack_idx_in_dom: usize = idx_of_node_stack[idx_of_node_stack.len() -1].try_into().unwrap();
                         node.parent_node_idx = dom_tree[last_stack_idx_in_dom].this_node_idx;
                         dom_tree[last_stack_idx_in_dom].child_nodes_idx.push(node.this_node_idx);
                         dom_tree[last_stack_idx_in_dom].first_child_idx = 
@@ -420,22 +426,25 @@ pub mod handmade_html_parser {
                             } else {
                                 dom_tree[last_stack_idx_in_dom].first_child_idx
                             };
-                        dom_tree[last_stack_idx_in_dom].last_child_idx = node.this_node_idx;
-                        if dom_tree[last_stack_idx_in_dom].parent_node_idx == node.parent_node_idx {
-                            node.previous_sibiling_idx = dom_tree[last_stack_idx_in_dom].this_node_idx;
-                            dom_tree[last_stack_idx_in_dom].next_sibiling_idx = node.this_node_idx;
+                        if dom_tree[last_stack_idx_in_dom].last_child_idx != -1 {
+                            let last_child_idx: usize = dom_tree[last_stack_idx_in_dom].last_child_idx.try_into().unwrap();
+                            dom_tree[last_child_idx].next_sibiling_idx = node.this_node_idx;
+                            node.previous_sibiling_idx = dom_tree[last_child_idx].this_node_idx;
                         }
+                        dom_tree[last_stack_idx_in_dom].last_child_idx = node.this_node_idx;
                     }
     
                     if i.token_type == TokenType::StratTag {
                         idx_of_node_stack.push(node.this_node_idx);
                     }
+                    println!("node_name");
+                    println!("{}", node.node_content.node_name);
                     dom_tree.push(node);
+                    count += 1;
                     let parent_element_idx = dom_tree.len() - 1;
     
                     // Handle attribute
                     for j in &i.tag_attribute {
-                        count += 1;
                         let attribute_content = NodeContent {
                             node_type: NodeType::Attribute,
                             node_name: j.0.clone(),
@@ -460,16 +469,17 @@ pub mod handmade_html_parser {
                             } else {
                                 dom_tree[parent_element_idx].first_child_idx
                             };
-                            dom_tree[parent_element_idx].last_child_idx = attribute_node.this_node_idx;
-                        let last_stack_idx = idx_of_node_stack.len() -1;
-                        let last_stack_idx_in_dom: usize = idx_of_node_stack[last_stack_idx].try_into().unwrap();
-                        let parent_last_child_idx: usize = dom_tree[last_stack_idx_in_dom].last_child_idx.try_into().unwrap();
-                        if dom_tree[parent_last_child_idx].node_content.node_type == NodeType::Attribute {
-                            attribute_node.previous_sibiling_idx = dom_tree[parent_last_child_idx].this_node_idx;
-                            dom_tree[parent_last_child_idx].next_sibiling_idx = attribute_node.this_node_idx;
+                        if dom_tree[parent_element_idx].last_child_idx != -1 {
+                            let last_child_idx: usize = dom_tree[parent_element_idx].last_child_idx.try_into().unwrap();
+                            dom_tree[last_child_idx].next_sibiling_idx = attribute_node.this_node_idx;
+                            attribute_node.previous_sibiling_idx = dom_tree[last_child_idx].this_node_idx;
                         }
+                        dom_tree[parent_element_idx].last_child_idx = attribute_node.this_node_idx;
     
+                        println!("attr_name");
+                        println!("{}", attribute_node.node_content.node_name);
                         dom_tree.push(attribute_node);
+                        count += 1;
                     }
     
                     if (mode == Mode::BeforeHTML) && (i.tag_name.to_uppercase() == "HTML") {
@@ -503,8 +513,8 @@ pub mod handmade_html_parser {
                 _ => {
                 },
             };
-            count += 1;
         }
+        println!("end create DOM tree"); 
         dom_tree
     }
 

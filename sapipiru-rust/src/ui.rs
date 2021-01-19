@@ -1,6 +1,7 @@
 pub mod styling_window {
 
     use crate::html_parser::handmade_html_parser;
+    use crate::css_parser::handmade_css_parser;
 
     use iced::{
         button, text_input, scrollable, Button, Text, TextInput, Column, Scrollable,
@@ -45,7 +46,9 @@ pub mod styling_window {
                 Message::ButtonPressed => {
                     let mut html_text = String::new();
                     reqwest::blocking::get(&self.input_value).unwrap().read_to_string(&mut html_text);
-                    self.scroll_text = handmade_html_parser::parse_html(&html_text);
+                    //self.scroll_text = handmade_html_parser::parse_html(&html_text);
+                    handmade_html_parser::parse_html(&html_text);
+                    self.scroll_text = handmade_css_parser::return_css_text();
                 },
             }
         }
