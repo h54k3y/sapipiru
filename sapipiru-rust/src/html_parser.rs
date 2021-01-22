@@ -392,9 +392,29 @@ pub mod handmade_html_parser {
                         dom_tree.push(node);
                         count += 1;
                         mode = Mode::BeforeHTML;
+                    } else {
+                        println!("Error: DOCTYPE element should be in Mode::Initial");
                     }
                 },
                 TokenType::StratTag | TokenType::Text | TokenType::Comment=> {
+                    if mode == Mode::BeforeHTML  {
+                        if (i.token_type != TokenType::StratTag) || (i.tag_name.to_lowercase() != "html") {
+                            continue;
+                        }
+                    }
+
+                    if mode == Mode::BeforeHead  {
+                        if (i.token_type != TokenType::StratTag) || (i.tag_name.to_lowercase() != "head") {
+                            continue;
+                        }
+                    }
+
+                    if mode == Mode::AfterHead  {
+                        if (i.token_type != TokenType::StratTag) || (i.tag_name.to_lowercase() != "body") {
+                            continue;
+                        }
+                    }
+
                     if (mode == Mode::InHead) && (i.tag_name.to_lowercase() == "link") {
                         find_css_path(i.clone());
                     }
@@ -441,7 +461,10 @@ pub mod handmade_html_parser {
                     }
     
                     if i.token_type == TokenType::StratTag {
-                        idx_of_node_stack.push(node.this_node_idx);
+                        // check if it's self closing tag or not 
+                        if (i.tag_name.to_lowercase() != "base") && (i.tag_name.to_lowercase() != "basefont") && (i.tag_name.to_lowercase() != "bgsound") && (i.tag_name.to_lowercase() != "link") {
+                            idx_of_node_stack.push(node.this_node_idx);
+                        }
                     }
                     // println!("{}", node.node_content.node_name);
                     dom_tree.push(node);
