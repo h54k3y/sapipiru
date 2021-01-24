@@ -213,7 +213,7 @@ pub mod handmade_html_parser {
         print_dom_node(&dom_nodes, &mut result);
         result
         //String::from("")
-        // print_token(tokens)
+        //print_token(tokens)
     }
 
     fn tokenize(original_html : &String) -> Vec<Token> {
@@ -223,6 +223,7 @@ pub mod handmade_html_parser {
         let mut tokens: Vec<Token> = Vec::new();
         let mut token_end_flag = false;
         let mut is_after_open_tag = false;
+        let mut is_attribute_value = false;
         let mut count_comment_end_char: i32 = 0;
         let mut tmp_string: String = Default::default();
         let mut tmp_attribute_strings: (String, String) = Default::default();
@@ -236,6 +237,7 @@ pub mod handmade_html_parser {
                     } else if is_after_open_tag {
                         // This is handling the text, push current char to the token data.
                         if current_token.token_type != TokenType::Text {
+                            current_token.tag_name = String::from("text");
                             current_token.token_type = TokenType::Text;
                         }
                         current_token.token_data.push(i);
@@ -284,20 +286,22 @@ pub mod handmade_html_parser {
                         };
                     } else if i ==' ' {
                         if !current_token.tag_name.starts_with("!--") && (current_token.token_type != TokenType::Comment) {
-                            current_token.token_type = 
-                                if current_token.tag_name.to_uppercase().starts_with("!DOCTYPE") {
-                                    current_token.tag_name = String::from("doctype");
-                                    TokenType::Doctype
-                                } else {
-                                    current_token.token_type
-                                };
-                            current_state = TokenizeState::TagAttribute;
+                            if current_token.tag_name.to_uppercase().starts_with("!DOCTYPE") {
+                                current_token.tag_name = String::from("doctype");
+                                current_token.token_type = TokenType::Doctype;
+                            } else {
+                                current_state = TokenizeState::TagAttribute;
+                            }
                         } else {
                             current_token.tag_name.push(i);
                         }
                     } else {
-                        // push to tag_name
-                        current_token.tag_name.push(i);
+                        if current_token.token_type == TokenType::Doctype {
+                            current_token.token_data.to_lowercase().push(i);
+                        } else {
+                            // push to tag_name
+                            current_token.tag_name.push(i);
+                        }
                     }
 
                     // count continuous comment end tag
@@ -308,23 +312,29 @@ pub mod handmade_html_parser {
                     }
                 }
                 TokenizeState::TagAttribute => {
-                    // duplicated code, need to refactor.
                     if i == '>' {
                         current_state = TokenizeState::Data;
                         token_end_flag = true;
+                        is_attribute_value = false;
                         tmp_string = Default::default();
                         tmp_attribute_strings = Default::default();
-                    } else if i == '=' {
-                        tmp_attribute_strings.0 = tmp_string;
-                        tmp_string = Default::default();
-                    } else if i =='"' {
-                        if !tmp_string.is_empty() {
+                    }  else if i =='"' {
+                        if is_attribute_value == true {
                             tmp_attribute_strings.1 = tmp_string;
                             current_token.tag_attribute.push(tmp_attribute_strings);
                             tmp_attribute_strings = Default::default();
                             tmp_string = Default::default();
+                            is_attribute_value = false;
+                        } else {
+                            is_attribute_value = true;
                         }
-                    } else if i !=' ' {
+                    } else if (i == '=') && (is_attribute_value == false) {
+                        // end attribute name
+                        tmp_attribute_strings.0 = tmp_string;
+                        tmp_string = Default::default();
+                    } else if (i == ' ') && (is_attribute_value == false) && tmp_string.is_empty() {
+                        // no push
+                    } else {
                         tmp_string.push(i);
                     }
                 }
@@ -359,11 +369,11 @@ pub mod handmade_html_parser {
         tokens
     }
 
-    const VOIDTAG: [&str; 21] = ["area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr", "menuitem", 
+    const VOIDTAG: [&str; 23] = ["area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr", "menuitem", 
                                 // for compatibility
                                  "basefont", "bgsound", "frame", "keygen",
                                 // other
-                                 "image", "isindex"
+                                 "image", "isindex", "comment", "text"
                                 ];
 
     fn add_new_node(token: &Token, count: &mut usize, node_stack_idx: &mut Vec<usize>, dom_tree: &mut Vec<DOMNode>) {
@@ -497,7 +507,7 @@ pub mod handmade_html_parser {
                     }
                 },
                 Mode::InHead => {
-                    if i.token_type == TokenType::StratTag {
+                    if (i.token_type == TokenType::StratTag) || (i.token_type == TokenType::Text) || (i.token_type == TokenType::Comment) {
                         if i.tag_name.to_lowercase() == "link" {
                             find_css_path(i.clone());
                         }
@@ -511,7 +521,7 @@ pub mod handmade_html_parser {
                         if i.tag_name.to_lowercase() == "head" {
                             mode = Mode::AfterHead;
                         }
-                    }
+                    } 
                 },
                 Mode::AfterHead => {
                     if i.token_type == TokenType::StratTag {
@@ -522,7 +532,7 @@ pub mod handmade_html_parser {
                     }
                 },
                 Mode::InBody => {
-                    if i.token_type == TokenType::StratTag {
+                    if (i.token_type == TokenType::StratTag) || (i.token_type == TokenType::Text) || (i.token_type == TokenType::Comment) {
                         add_new_node(&i, &mut count, &mut node_stack_idx, &mut dom_tree);
                     } else if i.token_type == TokenType::EndTag {
                         let last_idx = node_stack_idx[node_stack_idx.len() -1];
@@ -568,7 +578,7 @@ pub mod handmade_html_parser {
         }
 
         if is_stylesheet {
-            handmade_css_parser::get_css(herf_link);
+            //handmade_css_parser::get_css(herf_link);
         }
     }
 
@@ -619,7 +629,7 @@ pub mod handmade_html_parser {
             let idx: i32 = i.this_node_idx.try_into().unwrap();
             result.push_str("\n");
             result.push_str("\n");
-            result.push_str("*PARENT ");
+            result.push_str("PARENT ");
             result.push_str("[ ");
             result.push_str("index: ");
             result.push_str(&idx.to_string());
@@ -629,13 +639,13 @@ pub mod handmade_html_parser {
             result.push_str(", ");
             result.push_str("value: ");
             result.push_str(&i.node_content.node_value);
-            result.push_str("]");
+            result.push_str(" ]");
             result.push_str("\n");
             let child_count: i128 = i.child_nodes_idx.len().try_into().unwrap();
-            result.push_str("*CHILD_COUNT: ");
+            result.push_str("CHILD_COUNT: ");
             result.push_str(&child_count.to_string());
             result.push_str("\n");
-            result.push_str("*CHILDS  ");
+            result.push_str("CHILDS  ");
             result.push_str("[ ");
             for j in &i.child_nodes_idx {
                 result.push_str(&j.to_string());
