@@ -12,10 +12,11 @@ pub mod handmade_css_parser {
         pub static ref CSSTEXT: Mutex<String> = Mutex::new("".to_string());
     }*/
 
-    pub trait HanleCSSData {
+    pub trait HandleCSSData {
         fn push_link(&mut self, link: String);
         fn push_css_from_link(&mut self, link: String);
         fn get_css_text(&mut self, idx: usize) -> String;
+        fn handle_link_format(&mut self);
     }
 
     #[derive(Default)]
@@ -24,7 +25,7 @@ pub mod handmade_css_parser {
         css_strs: Vec<String>
     }
 
-    impl HanleCSSData for CSSData {
+    impl HandleCSSData for CSSData {
         fn push_link(&mut self, link: String) {
             self.links.push(link.clone());
             self.push_css_from_link(link);
@@ -38,6 +39,10 @@ pub mod handmade_css_parser {
 
         fn get_css_text(&mut self, idx: usize) -> String {
             self.css_strs[idx].clone()
+        }
+
+        fn handle_link_format(&mut self) {
+            
         }
     }
 

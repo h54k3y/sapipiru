@@ -29,6 +29,25 @@ pub mod styling_window {
         Styling::run(Settings::default());
     }
 
+    pub trait HandleHTML {
+        fn push_link(&mut self, link: String);
+        fn get_link(&mut self) -> String;
+    }
+
+    struct HTMLData {
+        link: String
+    }
+
+    impl HandleHTML for HTMLData {
+        fn push_link(&mut self, link: String) {
+            self.link = link;
+        }
+
+        fn get_link(&mut self) -> String {
+            self.link.clone()
+        }
+    }
+
     impl Sandbox for Styling {
         type Message = Message;
 
