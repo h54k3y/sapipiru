@@ -9,6 +9,7 @@ pub mod styling_window {
         Settings, 
     };
     use std::io::Read;
+    use crate::css_parser::handmade_css_parser::HandleCSSData;
 
     #[derive(Default)]
     struct Styling {
@@ -34,6 +35,7 @@ pub mod styling_window {
         fn get_link(&mut self) -> String;
     }
 
+    #[derive(Default)]
     struct HTMLData {
         link: String
     }
@@ -64,11 +66,16 @@ pub mod styling_window {
                 Message::InputChanged(value) => self.input_value = value,
                 Message::ButtonPressed => {
                     let mut html_text = String::new();
+                    let mut data: HTMLData = Default::default();
+                    data.push_link(self.input_value.clone());
                     reqwest::blocking::get(&self.input_value).unwrap().read_to_string(&mut html_text);
                     //self.scroll_text = html_text;
-                    self.scroll_text = handmade_html_parser::parse_html(&html_text);
-                    /*handmade_html_parser::parse_html(&html_text);
-                    self.scroll_text = handmade_css_parser::return_css_text();*/
+                    //self.scroll_text = handmade_html_parser::parse_html(&html_text);
+                    handmade_html_parser::parse_html(&html_text);
+                    let mut css_data: handmade_css_parser::CSSData = Default::default();
+                    css_data.push_original_url(self.input_value.clone());
+                    self.scroll_text = css_data.get_css_text(0);
+                    /*self.scroll_text = handmade_css_parser::return_css_text();*/
                 },
             }
         }
