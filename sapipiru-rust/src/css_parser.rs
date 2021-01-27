@@ -32,18 +32,19 @@ pub mod handmade_css_parser {
         fn push_original_url(&mut self, url: String) {
             let mut count = 0;
             for c in url.chars() {
-                if c == '\\' {
+                if c == '/' {
                     count = 0;
                 } else {
                     count += 1;
                 }
             }
 
+            let mut cp_url = url.clone();
             for i in 0..count {
-                url.pop();
+                cp_url.pop();
             }
 
-            self.current_dir = url;
+            self.current_dir = cp_url;
         }
 
         fn push_link(&mut self, link: String) {
