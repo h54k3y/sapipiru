@@ -15,7 +15,7 @@ pub mod handmade_css_parser {
 
     pub trait HandleCSSData {
         fn push_original_url(&mut self, url: String);
-        fn push_link(&mut self, link: String);
+        fn push_links(&mut self, links_vec: Vec<String>);
         fn push_css_from_link(&mut self, link: String);
         fn get_css_text(&mut self, idx: usize) -> String;
         fn handle_link_format(&mut self, link: String) -> String;
@@ -40,17 +40,23 @@ pub mod handmade_css_parser {
             }
 
             let mut cp_url = url.clone();
-            for i in 0..count {
+            for i in 0..count+1 {
                 cp_url.pop();
             }
 
             self.current_dir = cp_url;
         }
 
-        fn push_link(&mut self, link: String) {
-            let format_link = self.handle_link_format(link);
-            self.links.push(format_link.clone());
-            self.push_css_from_link(format_link);
+        fn push_links(&mut self, links_vec: Vec<String>) {
+            for i in links_vec {
+                println!("Before");
+                println!("{}\n", &i);
+                let format_link = self.handle_link_format(i);
+                println!("After");
+                println!("{}", &format_link);
+                self.links.push(format_link.clone());
+                self.push_css_from_link(format_link);
+            }
         }
 
         fn push_css_from_link(&mut self, link: String) {
@@ -60,6 +66,11 @@ pub mod handmade_css_parser {
         }
 
         fn get_css_text(&mut self, idx: usize) -> String {
+            if self.css_strs.is_empty() {
+                println!("Empty");
+                let empty_str = Default::default();
+                return empty_str
+            }
             self.css_strs[idx].clone()
         }
 
@@ -68,26 +79,17 @@ pub mod handmade_css_parser {
             if link.starts_with("http://") || link.starts_with("https://") {
                 result = link.clone();
             } else {
-                let mut str_vec: Vec<&str> = self.current_dir.split('/').collect();
-                let mut tmp_cnt = 0;
-                let mut up_cnt = 0;
-                for c in link.chars() {
-                    if c == '.' {
-                        tmp_cnt += 1;
-                    } else if  c == '/' {
-                        if tmp_cnt >= 2 {
-                            up_cnt += 1;
-                            tmp_cnt = 0;
-                        }
-                    }
-                }
-                let last_count = str_vec.len() - up_cnt;
+                let str_vec: Vec<&str> = self.current_dir.split('/').collect();
                 let mut idx = 0;
                 for i in str_vec {
-                    if idx == last_count {
+                    if idx == 3 {
                         break;
                     }
                     result.push_str(i);
+
+                    if idx != 2 {
+                        result.push('/');
+                    }
                     idx += 1;
                 }
                 result.push_str(&link.clone());

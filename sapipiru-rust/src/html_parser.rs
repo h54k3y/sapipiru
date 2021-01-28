@@ -206,12 +206,13 @@ pub mod handmade_html_parser {
     }
 
 
-    pub fn parse_html(original_html : &String) -> String {
+    pub fn parse_html(original_html : &String) -> (String, Vec<String>) {
+        let mut links_vec: Vec<String> = Vec::new();
         let tokens: Vec<Token> = tokenize(&original_html);
-        let dom_nodes = create_DOM_tree(tokens);
+        let dom_links = create_DOM_tree(tokens);
         let mut result = String::new();
-        print_dom_node(&dom_nodes, &mut result);
-        result
+        print_dom_node(&dom_links.0, &mut result);
+        (result, dom_links.1)
         //String::from("")
         //print_token(tokens)
     }
@@ -476,11 +477,12 @@ pub mod handmade_html_parser {
 
     // will follow https://html.spec.whatwg.org/multipage/parsing.html#data-state
     // 13.2.6.4 The rules for parsing tokens in HTML content
-    fn create_DOM_tree(tokens: Vec<Token>) -> Vec<DOMNode> {
+    fn create_DOM_tree(tokens: Vec<Token>) -> (Vec<DOMNode>, Vec<String>) {
         // println!("start create DOM tree"); 
         let mut mode = Mode::Initial;
         let mut dom_tree: Vec<DOMNode> = Vec::new();
         let mut node_stack_idx: Vec<usize> = Vec::new();
+        let mut links_vec: Vec<String> = Vec::new();
         let mut count = 0;
         for i in &tokens {
             match mode{
@@ -509,7 +511,10 @@ pub mod handmade_html_parser {
                 Mode::InHead => {
                     if (i.token_type == TokenType::StratTag) || (i.token_type == TokenType::Text) || (i.token_type == TokenType::Comment) {
                         if i.tag_name.to_lowercase() == "link" {
-                            find_css_path(i.clone());
+                            let link = find_css_path(i.clone());
+                            if !link.is_empty() {
+                                links_vec.push(link);
+                            }
                         }
                         add_new_node(&i, &mut count, &mut node_stack_idx, &mut dom_tree);
                     } else if i.token_type == TokenType::EndTag {
@@ -563,12 +568,12 @@ pub mod handmade_html_parser {
                 }
             };
         }
-        dom_tree
+        (dom_tree, links_vec)
     }
 
-    fn find_css_path(token: Token) {
+    fn find_css_path(token: Token) -> String {
         let mut is_stylesheet: bool = false;
-        let mut herf_link: String =Default::default();
+        let mut herf_link: String = Default::default();
         for i in token.tag_attribute {
             if (i.0.to_lowercase() == "rel") && (i.1.to_lowercase() == "stylesheet") {
                 is_stylesheet = true;
@@ -577,9 +582,10 @@ pub mod handmade_html_parser {
             }
         }
 
-        if is_stylesheet {
-            //handmade_css_parser::get_css(herf_link);
+        if is_stylesheet == false {
+            herf_link = Default::default();
         }
+        herf_link
     }
 
     fn convert_tokentype_to_string(token_type: TokenType) -> String {
