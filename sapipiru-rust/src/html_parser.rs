@@ -333,8 +333,13 @@ pub mod handmade_html_parser {
                         // end attribute name
                         tmp_attribute_strings.0 = tmp_string;
                         tmp_string = Default::default();
-                    } else if (i == ' ') && (is_attribute_value == false) && tmp_string.is_empty() {
-                        // no push
+                    } else if (i == ' ') && (is_attribute_value == false) {
+                        if !tmp_string.is_empty() {
+                            tmp_attribute_strings.0 = tmp_string;
+                            current_token.tag_attribute.push(tmp_attribute_strings);
+                            tmp_attribute_strings = Default::default();
+                            tmp_string = Default::default();
+                        }
                     } else {
                         tmp_string.push(i);
                     }
