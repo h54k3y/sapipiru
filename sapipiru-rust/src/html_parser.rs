@@ -228,7 +228,21 @@ pub mod handmade_html_parser {
         let mut count_comment_end_char: i32 = 0;
         let mut tmp_string: String = Default::default();
         let mut tmp_attribute_strings: (String, String) = Default::default();
-        for i in original_html.as_str().chars() {
+        let mut is_previous_space: bool = false;
+        for mut i in original_html.as_str().chars() {
+            if i == '\n' {
+                i = ' ';
+            }
+
+            if i == ' ' {
+                if is_previous_space == true {
+                    continue;
+                }
+                is_previous_space = true;
+            } else {
+                is_previous_space = false;
+            }
+
             match current_state {
                 TokenizeState::Data => {
                     if i == '<' {
@@ -292,6 +306,10 @@ pub mod handmade_html_parser {
                                 current_token.token_type = TokenType::Doctype;
                             } else {
                                 current_state = TokenizeState::TagAttribute;
+                                is_attribute_value = false;
+                                tmp_string = Default::default();
+                                tmp_attribute_strings = Default::default();
+
                             }
                         } else {
                             current_token.tag_name.push(i);
@@ -492,6 +510,8 @@ pub mod handmade_html_parser {
         for i in &tokens {
             match mode{
                 Mode::Initial => {
+                    /*println!("Initial: tag name");
+                    println!("{}", i.tag_name);*/
                     if i.token_type == TokenType::Doctype {
                         mode = Mode::BeforeHTML;
                         add_new_node(&i, &mut count, &mut node_stack_idx, &mut dom_tree);
@@ -501,8 +521,8 @@ pub mod handmade_html_parser {
                     if i.token_type == TokenType::StratTag {
                         if i.tag_name.to_lowercase() == "html" {
                             mode = Mode::BeforeHead;
+                            add_new_node(&i, &mut count, &mut node_stack_idx, &mut dom_tree);
                         }
-                        add_new_node(&i, &mut count, &mut node_stack_idx, &mut dom_tree);
                     }
                 },
                 Mode::BeforeHead => {
