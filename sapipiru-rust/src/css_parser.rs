@@ -40,7 +40,7 @@ pub mod handmade_css_parser {
             }
 
             let mut cp_url = url.clone();
-            for i in 0..count+1 {
+            for i in 0..(count + 1) {
                 cp_url.pop();
             }
 
@@ -79,8 +79,8 @@ pub mod handmade_css_parser {
             if link.starts_with("http://") || link.starts_with("https://") {
                 result = link.clone();
             } else {
-                let cur_vec: Vec<&str> = self.current_dir.split('/').collect();
                 if link.starts_with("/") {
+                    let cur_vec: Vec<&str> = self.current_dir.split('/').collect();
                     let mut idx = 0;
                     for i in cur_vec {
                         if idx == 3 {
@@ -95,24 +95,8 @@ pub mod handmade_css_parser {
                     }
                     result.push_str(&link.clone());
                 } else {
-                    let link_vec: Vec<&str> = self.current_dir.split('/').collect();
-                    let mut tmp_cnt = 0;
-                    let mut up_cnt = 0;
-                    for str in link_vec {
-                        if str == ".." {
-                            up_cnt += 1;
-                        }
-                    }
-                    let last_count = cur_vec.len() - up_cnt;
-                    let mut idx = 0;
-                    for i in cur_vec {
-                        if idx == last_count {
-                            break;
-                        }
-                        result.push_str(i);
-                        result.push('/');
-                        idx += 1;
-                    }
+                    result.push_str(&self.current_dir.clone());
+                    result.push('/');
                     result.push_str(&link.clone());
                 }
             }

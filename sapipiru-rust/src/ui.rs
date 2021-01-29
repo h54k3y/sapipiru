@@ -69,13 +69,13 @@ pub mod styling_window {
                     let mut data: HTMLData = Default::default();
                     data.push_link(self.input_value.clone());
                     reqwest::blocking::get(&self.input_value).unwrap().read_to_string(&mut html_text);
-                    self.scroll_text = html_text;
+                    //self.scroll_text = html_text;
                     //self.scroll_text = handmade_html_parser::parse_html(&html_text);
-                    /*let mut css_data: handmade_css_parser::CSSData = Default::default();
+                    let mut css_data: handmade_css_parser::CSSData = Default::default();
                     css_data.push_original_url(self.input_value.clone());
                     let result = handmade_html_parser::parse_html(&html_text);
                     css_data.push_links(result.1);
-                    self.scroll_text = css_data.get_css_text(0);*/
+                    self.scroll_text = css_data.get_css_text(0);
                     /*self.scroll_text = handmade_css_parser::return_css_text();*/
                 },
             }
