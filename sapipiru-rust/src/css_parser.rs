@@ -13,12 +13,29 @@ pub mod handmade_css_parser {
         pub static ref CSSTEXT: Mutex<String> = Mutex::new("".to_string());
     }*/
 
+    #[derive(Default)]
+    pub struct CSSOMNode {
+        selector: String,
+        declaration: String
+    }
+
+    struct Selector {
+
+    }
+
+    #[derive(PartialEq, Eq, Debug)]
+    pub enum Mode {
+        Selector,
+        Declaration
+    }
+
     pub trait HandleCSSData {
         fn push_original_url(&mut self, url: String);
         fn push_links(&mut self, links_vec: Vec<String>);
         fn push_css_from_link(&mut self, link: String);
         fn get_css_text(&mut self, idx: usize) -> String;
         fn handle_link_format(&mut self, link: String) -> String;
+        fn parse_css(& mut self, idx: usize) -> Vec<CSSOMNode>;
     }
 
     #[derive(Default)]
@@ -101,7 +118,29 @@ pub mod handmade_css_parser {
                 }
             }
             result
-        } 
+        }
+
+        fn parse_css(& mut self, idx: usize) -> Vec<CSSOMNode> {
+            let mut result = Vec::new();
+            let mut cur_mode = Mode::Selector;
+            let mut cur_node: CSSOMNode = Default::default();
+            for i in self.css_strs[idx].chars() {
+                let mut tmp_str = String::new();
+                if (cur_mode == Mode::Selector) && (i == '{') {
+                    cur_node.selector = tmp_str;
+                    tmp_str = String::new();
+                    cur_mode = Mode::Declaration;
+                } else if (cur_mode == Mode::Declaration) && (i == '}') {
+                    cur_node.declaration = tmp_str;
+                    tmp_str = String::new();
+                    cur_mode = Mode::Selector;
+                    result.push(cur_node);
+                    cur_node = Default::default();
+                } 
+            }
+
+            result
+        }
     }
 
     use crate::ui::styling_window;
