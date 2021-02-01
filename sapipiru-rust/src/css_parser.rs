@@ -13,20 +13,27 @@ pub mod handmade_css_parser {
         pub static ref CSSTEXT: Mutex<String> = Mutex::new("".to_string());
     }*/
 
-    #[derive(Default)]
+    #[derive(Default, Clone)]
     pub struct CSSOMNode {
         selector: String,
-        declaration: String
+        declarations: Vec<Declaration>
     }
 
     struct Selector {
 
     }
 
+    #[derive(Default, Clone)]
+    pub struct Declaration {
+        propery: String,
+        value: String
+    }
+
     #[derive(PartialEq, Eq, Debug)]
     pub enum Mode {
         Selector,
-        Declaration
+        DeclarationProperty,
+        DeclarationValue
     }
 
     pub trait HandleCSSData {
@@ -88,6 +95,7 @@ pub mod handmade_css_parser {
                 let empty_str = Default::default();
                 return empty_str
             }
+            self.parse_css(idx);
             self.css_strs[idx].clone()
         }
 
@@ -124,19 +132,78 @@ pub mod handmade_css_parser {
             let mut result = Vec::new();
             let mut cur_mode = Mode::Selector;
             let mut cur_node: CSSOMNode = Default::default();
+            let mut tmp_str = String::new();
+            let mut dec_property_str = String::new();
+            let mut dec_value_str = String::new();
+            let mut cur_declaration: Declaration = Default::default();
+            let mut declaration_vec = Vec::new();
             for i in self.css_strs[idx].chars() {
-                let mut tmp_str = String::new();
-                if (cur_mode == Mode::Selector) && (i == '{') {
-                    cur_node.selector = tmp_str;
-                    tmp_str = String::new();
-                    cur_mode = Mode::Declaration;
-                } else if (cur_mode == Mode::Declaration) && (i == '}') {
-                    cur_node.declaration = tmp_str;
-                    tmp_str = String::new();
-                    cur_mode = Mode::Selector;
-                    result.push(cur_node);
-                    cur_node = Default::default();
-                } 
+                match cur_mode {
+                    Mode::Selector => {
+                        if i == '{' {
+                            cur_node.selector = tmp_str;
+                            tmp_str = String::new();
+                            cur_mode = Mode::DeclarationProperty;
+                            cur_declaration = Default::default();
+                            declaration_vec = Vec::new();
+                            dec_property_str = String::new();
+                            dec_value_str = String::new();
+                        } else {
+                            tmp_str.push(i);
+                        }
+                    },
+                    Mode::DeclarationProperty => {
+                        if i == ':' {
+                            cur_declaration.propery = dec_property_str;
+                            dec_property_str = String::new();
+                            cur_mode = Mode::DeclarationValue;
+                        } else if i == '}' {
+                            cur_node.declarations = declaration_vec.clone();
+                            result.push(cur_node);
+                            declaration_vec = Vec::new();
+                            dec_property_str = String::new();
+                            cur_node = Default::default();
+                            cur_mode = Mode::Selector;
+                        } else {
+                            dec_property_str.push(i.clone());
+                        }
+                    }
+                    Mode::DeclarationValue => {
+                        if (i == ';') /*|| (i == '}')*/ {
+                            cur_declaration.value = dec_value_str;
+                            declaration_vec.push(cur_declaration.clone());
+                            /*if i == '}' {
+                                cur_node.declarations = declaration_vec.clone();
+                                result.push(cur_node);
+                                declaration_vec = Vec::new();
+                                dec_property_str = String::new();
+                                cur_node = Default::default();
+                                cur_mode = Mode::Selector;
+                            } else {
+                                cur_mode = Mode::DeclarationProperty;
+                            }*/
+                            cur_mode = Mode::DeclarationProperty;
+                            cur_declaration = Default::default();
+                            dec_value_str = String::new();
+                        } else {
+                            dec_value_str.push(i.clone());
+                        }
+                    }
+                }
+            }
+
+            // for debug
+            for i in &result {
+                print!("SELECTOR: ");
+                println!("{}", &i.selector);
+                println!("DECLARATIONS: ");
+                for j in &i.declarations {
+                    print!("property: ");
+                    print!("{}", &j.propery);
+                    print!(",    value: ");
+                    println!("{}", &j.value);
+                }
+                println!("\n");
             }
 
             result
