@@ -15,7 +15,7 @@ pub mod handmade_css_parser {
 
     #[derive(Default, Clone)]
     pub struct CSSOMNode {
-        selector: String,
+        selector: Vec<String>,
         declarations: Vec<Declaration>
     }
 
@@ -141,14 +141,17 @@ pub mod handmade_css_parser {
                 match cur_mode {
                     Mode::Selector => {
                         if i == '{' {
-                            cur_node.selector = tmp_str;
+                            cur_node.selector.push(tmp_str);
                             tmp_str = String::new();
                             cur_mode = Mode::DeclarationProperty;
                             cur_declaration = Default::default();
                             declaration_vec = Vec::new();
                             dec_property_str = String::new();
                             dec_value_str = String::new();
-                        } else {
+                        } else if i ==',' {
+                            cur_node.selector.push(tmp_str);
+                            tmp_str = String::new();
+                        }else {
                             tmp_str.push(i);
                         }
                     },
@@ -195,13 +198,13 @@ pub mod handmade_css_parser {
             // for debug
             for i in &result {
                 print!("SELECTOR: ");
-                println!("{}", &i.selector);
-                println!("DECLARATIONS: ");
+                for j in &i.selector {
+                    print!("{},  ", &j);
+                }
+                println!("\n\nDECLARATIONS: ");
                 for j in &i.declarations {
-                    print!("property: ");
-                    print!("{}", &j.propery);
-                    print!(",    value: ");
-                    println!("{}", &j.value);
+                    print!("property: {}", &j.propery);
+                    println!(",    value: {}", &j.value);
                 }
                 println!("\n");
             }
