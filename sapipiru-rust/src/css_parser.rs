@@ -158,11 +158,18 @@ pub mod handmade_css_parser {
                 } else if i == ';' {
                     if !tmp_str.is_empty() {
                         current_declaration.value = tmp_str.clone();
+                        declaration_vec.push(current_declaration.clone());
                     }
-                    declaration_vec.push(current_declaration.clone());
                     tmp_str = String::new();
                     current_declaration = Default::default();
                 } else if i == '}' {
+                    if !tmp_str.is_empty() {
+                        current_declaration.value = tmp_str.clone();
+                        declaration_vec.push(current_declaration.clone());
+                    }
+                    tmp_str = String::new();
+                    current_declaration = Default::default();
+
                     if !declaration_vec.is_empty() {
                         let mut new_node: CSSOMNode = Default::default();
                         if !stack_for_nest.is_empty() {
@@ -174,7 +181,6 @@ pub mod handmade_css_parser {
                         new_node.declarations = declaration_vec;
                         result.push(new_node);
                     }
-                    tmp_str = String::new();
                     declaration_vec = Vec::new();
                 } else {
                     tmp_str.push(i.clone());
