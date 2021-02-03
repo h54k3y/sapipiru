@@ -130,68 +130,54 @@ pub mod handmade_css_parser {
 
         fn parse_css(& mut self, idx: usize) -> Vec<CSSOMNode> {
             let mut result = Vec::new();
-            let mut cur_mode = Mode::Selector;
-            let mut cur_node: CSSOMNode = Default::default();
             let mut tmp_str = String::new();
-            let mut dec_property_str = String::new();
-            let mut dec_value_str = String::new();
-            let mut cur_declaration: Declaration = Default::default();
+            let mut current_selector: Vec<String> = Vec::new();
+            let mut current_declaration: Declaration = Default::default();
             let mut declaration_vec = Vec::new();
+            let mut stack_for_nest: Vec<Vec<String>> = Vec::new();
             for i in self.css_strs[idx].chars() {
-                match cur_mode {
-                    Mode::Selector => {
-                        if i == '{' {
-                            cur_node.selector.push(tmp_str);
-                            tmp_str = String::new();
-                            cur_mode = Mode::DeclarationProperty;
-                            cur_declaration = Default::default();
-                            declaration_vec = Vec::new();
-                            dec_property_str = String::new();
-                            dec_value_str = String::new();
-                        } else if i ==',' {
-                            cur_node.selector.push(tmp_str);
-                            tmp_str = String::new();
-                        }else {
-                            tmp_str.push(i);
-                        }
-                    },
-                    Mode::DeclarationProperty => {
-                        if i == ':' {
-                            cur_declaration.propery = dec_property_str;
-                            dec_property_str = String::new();
-                            cur_mode = Mode::DeclarationValue;
-                        } else if i == '}' {
-                            cur_node.declarations = declaration_vec.clone();
-                            result.push(cur_node);
-                            declaration_vec = Vec::new();
-                            dec_property_str = String::new();
-                            cur_node = Default::default();
-                            cur_mode = Mode::Selector;
-                        } else {
-                            dec_property_str.push(i.clone());
-                        }
+                if (i == ' ') || (i == '\n') {
+                    // do nothing
+                } else if i == '{' {
+                    if !tmp_str.is_empty() {
+                        current_selector.push(tmp_str.clone());
+                        stack_for_nest.push(current_selector.clone());
                     }
-                    Mode::DeclarationValue => {
-                        if (i == ';') /*|| (i == '}')*/ {
-                            cur_declaration.value = dec_value_str;
-                            declaration_vec.push(cur_declaration.clone());
-                            /*if i == '}' {
-                                cur_node.declarations = declaration_vec.clone();
-                                result.push(cur_node);
-                                declaration_vec = Vec::new();
-                                dec_property_str = String::new();
-                                cur_node = Default::default();
-                                cur_mode = Mode::Selector;
-                            } else {
-                                cur_mode = Mode::DeclarationProperty;
-                            }*/
-                            cur_mode = Mode::DeclarationProperty;
-                            cur_declaration = Default::default();
-                            dec_value_str = String::new();
-                        } else {
-                            dec_value_str.push(i.clone());
-                        }
+                    tmp_str = String::new();
+                    current_selector= Vec::new();
+                } else if i ==',' {
+                    if !tmp_str.is_empty() {
+                        current_selector.push(tmp_str.clone());
                     }
+                    tmp_str = String::new();
+                } else if i == ':' {
+                    if !tmp_str.is_empty() {
+                        current_declaration.propery = tmp_str.clone();
+                    }
+                    tmp_str = String::new();
+                } else if i == ';' {
+                    if !tmp_str.is_empty() {
+                        current_declaration.value = tmp_str.clone();
+                    }
+                    declaration_vec.push(current_declaration.clone());
+                    tmp_str = String::new();
+                    current_declaration = Default::default();
+                } else if i == '}' {
+                    if !declaration_vec.is_empty() {
+                        let mut new_node: CSSOMNode = Default::default();
+                        if !stack_for_nest.is_empty() {
+                            new_node.selector = stack_for_nest[stack_for_nest.len()-1].clone();
+                            stack_for_nest.pop();
+                        } else {
+                            println!("NO SELECTOR");
+                        }
+                        new_node.declarations = declaration_vec;
+                        result.push(new_node);
+                    }
+                    tmp_str = String::new();
+                    declaration_vec = Vec::new();
+                } else {
+                    tmp_str.push(i.clone());
                 }
             }
 
