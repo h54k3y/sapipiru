@@ -131,7 +131,7 @@ pub mod handmade_css_parser {
         fn parse_css(& mut self, idx: usize) -> Vec<CSSOMNode> {
             let mut result = Vec::new();
             let mut tmp_str = String::new();
-            let mut current_selector: Vec<String> = Vec::new();
+            let mut current_selectors: Vec<String> = Vec::new();
             let mut current_declaration: Declaration = Default::default();
             let mut declaration_vec = Vec::new();
             let mut stack_for_nest: Vec<Vec<String>> = Vec::new();
@@ -139,17 +139,21 @@ pub mod handmade_css_parser {
                 if (i == ' ') || (i == '\n') {
                     // do nothing
                 } else if i == '{' {
-                    if !tmp_str.is_empty() {
-                        current_selector.push(tmp_str.clone());
-                        stack_for_nest.push(current_selector.clone());
+                    let mut selector_str = String::new();
+                    for i in tmp_str.chars() {
+                        if i == ',' {
+                            current_selectors.push(selector_str);
+                            selector_str = String::new();
+                        } else {
+                            selector_str.push(i);
+                        }
+                    }
+
+                    if !current_selectors.is_empty() {
+                        stack_for_nest.push(current_selectors);
                     }
                     tmp_str = String::new();
-                    current_selector= Vec::new();
-                } else if i ==',' {
-                    if !tmp_str.is_empty() {
-                        current_selector.push(tmp_str.clone());
-                    }
-                    tmp_str = String::new();
+                    current_selectors = Vec::new();
                 } else if i == ':' {
                     if !tmp_str.is_empty() {
                         current_declaration.propery = tmp_str.clone();
