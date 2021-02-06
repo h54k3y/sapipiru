@@ -16,7 +16,8 @@ pub mod handmade_css_parser {
     #[derive(Default, Clone)]
     pub struct CSSOMNode {
         selector: Vec<String>,
-        declarations: Vec<Declaration>
+        declarations: Vec<Declaration>,
+        comment: String
     }
 
     struct Selector {
@@ -135,6 +136,8 @@ pub mod handmade_css_parser {
             let mut current_declaration: Declaration = Default::default();
             let mut declaration_vec = Vec::new();
             let mut stack_for_nest: Vec<Vec<String>> = Vec::new();
+            let mut is_previous_asterisk: bool = false;
+            let mut is_comment: bool = false;
             for i in self.css_strs[idx].chars() {
                 if (i == ' ') || (i == '\n') {
                     // do nothing
@@ -188,6 +191,19 @@ pub mod handmade_css_parser {
                     declaration_vec = Vec::new();
                 } else {
                     tmp_str.push(i.clone());
+                }
+
+                if i =='*' {
+                    is_previous_asterisk = true;
+                } else {
+                    is_previous_asterisk = false;
+                }
+
+                if (i == '/') && (is_previous_asterisk == true) && tmp_str.to_lowercase().starts_with("/*") {
+                    let mut new_node: CSSOMNode = Default::default();
+                    new_node.comment = tmp_str;
+                    result.push(new_node);
+                    tmp_str = String::new();
                 }
             }
 
