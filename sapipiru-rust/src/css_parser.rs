@@ -199,7 +199,26 @@ pub mod handmade_css_parser {
                     is_previous_asterisk = false;
                 }
 
-                if (i == '/') && (is_previous_asterisk == true) && tmp_str.to_lowercase().starts_with("/*") {
+                if (i == '/') && (is_previous_asterisk == true) {
+                    let mut comment_str: String = String::new();
+                    let mut non_comment_str: String = String::new();
+                    let mut is_previous_slash = false;
+                    let mut is_comment = false;
+                    for j in tmp_str.chars() {
+                        if is_comment {
+                            comment_str.push(j);
+                        } else {
+                            if j == '/' {
+                                is_previous_slash = true;
+                            } else {
+                                if j == '*' && (is_previous_slash == true) {
+                                    is_comment = true;
+                                }
+                                is_previous_slash = false;
+                            }
+                        }
+                    }
+
                     let mut new_node: CSSOMNode = Default::default();
                     new_node.comment = tmp_str;
                     result.push(new_node);
