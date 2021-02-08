@@ -139,6 +139,33 @@ pub mod handmade_css_parser {
             let mut is_previous_asterisk: bool = false;
             let mut is_comment: bool = false;
             for i in self.css_strs[idx].chars() {
+                if (i == '/') && (is_previous_asterisk == true) {
+                    let mut comment_str: String = String::new();
+                    let mut non_comment_str: String = String::new();
+                    let mut is_previous_slash = false;
+                    let mut is_comment = false;
+                    for j in tmp_str.chars() {
+                        if is_comment {
+                            comment_str.push(j);
+                        } else {
+                            if j == '/' {
+                                is_previous_slash = true;
+                            } else {
+                                if j == '*' && (is_previous_slash == true) {
+                                    is_comment = true;
+                                }
+                                is_previous_slash = false;
+                            }
+                            non_comment_str.push(j);
+                        }
+                    }
+
+                    let mut new_node: CSSOMNode = Default::default();
+                    new_node.comment = comment_str;
+                    result.push(new_node);
+                    tmp_str = non_comment_str;
+                }
+
                 if (i == ' ') || (i == '\n') {
                     // do nothing
                 } else if i == '{' {
@@ -198,34 +225,8 @@ pub mod handmade_css_parser {
                 } else {
                     is_previous_asterisk = false;
                 }
-
-                if (i == '/') && (is_previous_asterisk == true) {
-                    let mut comment_str: String = String::new();
-                    let mut non_comment_str: String = String::new();
-                    let mut is_previous_slash = false;
-                    let mut is_comment = false;
-                    for j in tmp_str.chars() {
-                        if is_comment {
-                            comment_str.push(j);
-                        } else {
-                            if j == '/' {
-                                is_previous_slash = true;
-                            } else {
-                                if j == '*' && (is_previous_slash == true) {
-                                    is_comment = true;
-                                }
-                                is_previous_slash = false;
-                            }
-                        }
-                    }
-
-                    let mut new_node: CSSOMNode = Default::default();
-                    new_node.comment = tmp_str;
-                    result.push(new_node);
-                    tmp_str = String::new();
-                }
             }
-
+            
             // for debug
             for i in &result {
                 print!("SELECTOR: ");
@@ -237,6 +238,9 @@ pub mod handmade_css_parser {
                     print!("property: {}", &j.propery);
                     println!(",    value: {}", &j.value);
                 }
+                println!("\n");
+                println!("COMMENT: ");
+                println!("{}", &i.comment);
                 println!("\n");
             }
 
