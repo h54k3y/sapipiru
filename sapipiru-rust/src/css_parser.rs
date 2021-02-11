@@ -132,47 +132,44 @@ pub mod handmade_css_parser {
         fn parse_css(& mut self, idx: usize) -> Vec<CSSOMNode> {
             let mut result = Vec::new();
             let mut tmp_str = String::new();
+            let mut comment_str = String::new();
             let mut current_selectors: Vec<String> = Vec::new();
-            let mut current_declaration: Declaration = Default::default();
             let mut declaration_vec = Vec::new();
             let mut stack_for_nest: Vec<Vec<String>> = Vec::new();
+            let mut is_previous_slash: bool = false;
             let mut is_previous_asterisk: bool = false;
+            let mut is_previous_space: bool = false;
+            let mut is_comment: bool = false;
             for i in self.css_strs[idx].chars() {
-                if (i == ' ') || (i == '\n') {
+                if !is_comment && ((is_previous_space && (i == ' ')) || (i == '\n')) {
                     // do nothing
                 } else {
-                    if (i == '/') && (is_previous_asterisk == true) {
-                        let mut comment_str: String = String::new();
-                        let mut non_comment_str: String = String::new();
-                        let mut is_previous_slash = false;
-                        let mut is_comment = false;
-                        for j in tmp_str.chars() {
-                            if is_comment {
-                                comment_str.push(j);
-                            } else {
-                                if j == '*' && (is_previous_slash == true) {
-                                    is_comment = true;
-                                    non_comment_str.pop();   // pop previous /
-                                } else {
-                                    non_comment_str.push(j);
-                                }
-                                is_previous_slash = j == '/';
-                            }
+                    if is_comment == true {
+                        if (i == '/') && (is_previous_asterisk == true) {
+                            is_comment = false;
+                            comment_str.pop();
+                            let mut new_node: CSSOMNode = Default::default();
+                            new_node.comment = comment_str.clone();
+                            result.push(new_node);
+                            continue;
+                        } else {
+                            comment_str.push(i);
                         }
-                        comment_str.pop();   // pop previous *
-                        println!("Comment {}", comment_str);
-                        let mut new_node: CSSOMNode = Default::default();
-                        new_node.comment = comment_str;
-                        result.push(new_node);
-                        tmp_str = non_comment_str;
+                    } else if (i == '*') && (is_previous_slash == true) {
+                        is_comment = true;
+                        comment_str = String::new();
+                        tmp_str.pop();
+                        continue;
                     } else if i == '{' {
                         let mut selector_str = String::new();
-                        for i in tmp_str.chars() {
-                            if i == ',' {
+                        let mut count_in_selector = 0;
+                        for j in tmp_str.chars() {
+                            if j == ',' {
+                                count_in_selector = 0;
                                 current_selectors.push(selector_str);
                                 selector_str = String::new();
                             } else {
-                                selector_str.push(i);
+                                selector_str.push(j);
                             }
                         }
 
@@ -185,43 +182,46 @@ pub mod handmade_css_parser {
                         }
                         tmp_str = String::new();
                         current_selectors = Vec::new();
-                    } else if i == ':' {
+                    } else if (i == ';') || (i == '}') {
+                        let mut current_declaration: Declaration = Default::default();
                         if !tmp_str.is_empty() {
-                            current_declaration.propery = tmp_str.clone();
-                        }
-                        tmp_str = String::new();
-                    } else if i == ';' {
-                        if !tmp_str.is_empty() {
-                            current_declaration.value = tmp_str.clone();
+                            let mut after_colon: bool = false;
+                            for j in tmp_str.chars() {
+                                if after_colon {
+                                    current_declaration.value.push(j);
+                                } else {
+                                    if j == ':' {
+                                        after_colon = true;
+                                    } else {
+                                        current_declaration.propery.push(j);
+                                    }
+                                }
+                            }
                             declaration_vec.push(current_declaration.clone());
                         }
                         tmp_str = String::new();
-                        current_declaration = Default::default();
-                    } else if i == '}' {
-                        if !tmp_str.is_empty() {
-                            current_declaration.value = tmp_str.clone();
-                            declaration_vec.push(current_declaration.clone());
+
+                        if i == '}' {
+                            let mut new_node: CSSOMNode = Default::default();
+                            if !stack_for_nest.is_empty() {
+                                new_node.selector = stack_for_nest[stack_for_nest.len()-1].clone();
+                                stack_for_nest.pop();
+                            } else {
+                                println!("NO SELECTOR");
+                            }
+                            new_node.declarations = declaration_vec;
+                            if !new_node.selector.is_empty() || !new_node.declarations.is_empty() {
+                                result.push(new_node);
+                            }
+                            declaration_vec = Vec::new();
                         }
-                        tmp_str = String::new();
-                        current_declaration = Default::default();
-    
-                        let mut new_node: CSSOMNode = Default::default();
-                        if !stack_for_nest.is_empty() {
-                            new_node.selector = stack_for_nest[stack_for_nest.len()-1].clone();
-                            stack_for_nest.pop();
-                        } else {
-                            println!("NO SELECTOR");
-                        }
-                        new_node.declarations = declaration_vec;
-                        if !new_node.selector.is_empty() || !new_node.declarations.is_empty() {
-                            result.push(new_node);
-                        }
-                        declaration_vec = Vec::new();
                     } else {
                         tmp_str.push(i.clone());
                     }
     
-                    is_previous_asterisk = i =='*';
+                    is_previous_asterisk = i == '*';
+                    is_previous_slash = i == '/';
+                    is_previous_space = i == ' ';
                 } 
             }
             
