@@ -163,17 +163,28 @@ pub mod handmade_css_parser {
                     } else if i == '{' {
                         let mut selector_str = String::new();
                         let mut count_in_selector = 0;
+                        let mut is_previous_space_j = false;
                         for j in tmp_str.chars() {
                             if j == ',' {
                                 count_in_selector = 0;
+                                if !selector_str.is_empty() && is_previous_space_j {
+                                    selector_str.pop();
+                                }
                                 current_selectors.push(selector_str);
                                 selector_str = String::new();
                             } else {
-                                selector_str.push(j);
+                                if (count_in_selector != 0) || (j != ' ') {
+                                    selector_str.push(j);
+                                }
+                                is_previous_space_j = j == ' ';
+                                count_in_selector += 1;
                             }
                         }
 
                         if !selector_str.is_empty() {
+                            if is_previous_space_j {
+                                selector_str.pop();
+                            }
                             current_selectors.push(selector_str);
                         }
     
@@ -186,18 +197,38 @@ pub mod handmade_css_parser {
                         let mut current_declaration: Declaration = Default::default();
                         if !tmp_str.is_empty() {
                             let mut after_colon: bool = false;
+                            let mut count_in_declaration = 0;
+                            let mut is_previous_space_j = false;
                             for j in tmp_str.chars() {
                                 if after_colon {
-                                    current_declaration.value.push(j);
+                                    if (count_in_declaration != 0) || (j != ' ') {
+                                        current_declaration.value.push(j);
+                                    }
+                                    count_in_declaration += 1;
                                 } else {
                                     if j == ':' {
                                         after_colon = true;
+                                        count_in_declaration = 0;
+                                        if !current_declaration.propery.is_empty() && is_previous_space_j {
+                                            current_declaration.propery.pop();
+                                        }
                                     } else {
-                                        current_declaration.propery.push(j);
+                                        if (count_in_declaration != 0) || (j != ' ') {
+                                            current_declaration.propery.push(j);
+                                        }
+                                        count_in_declaration += 1;
                                     }
                                 }
+                                is_previous_space_j = j ==' ';
                             }
-                            declaration_vec.push(current_declaration.clone());
+
+                            if !current_declaration.value.is_empty() && is_previous_space_j {
+                                current_declaration.value.pop();
+                            }
+
+                            if !current_declaration.propery.is_empty() && !current_declaration.value.is_empty() {
+                                declaration_vec.push(current_declaration.clone());
+                            }
                         }
                         tmp_str = String::new();
 
@@ -227,17 +258,17 @@ pub mod handmade_css_parser {
             
             // for debug
             for i in &result {
-                print!("SELECTOR: ");
+                print!("SELECTOR:");
                 for j in &i.selector {
-                    print!("{},  ", &j);
+                    print!("{},", &j);
                 }
-                println!("\n\nDECLARATIONS: ");
+                println!("\n\nDECLARATIONS:");
                 for j in &i.declarations {
-                    print!("property: {}", &j.propery);
-                    println!(",    value: {}", &j.value);
+                    print!("property:{}", &j.propery);
+                    println!(",value:{}", &j.value);
                 }
                 println!("\n");
-                println!("COMMENT: ");
+                println!("COMMENT:");
                 println!("{}", &i.comment);
                 println!("\n");
             }
