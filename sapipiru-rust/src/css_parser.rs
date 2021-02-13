@@ -14,14 +14,23 @@ pub mod handmade_css_parser {
     }*/
 
     #[derive(Default, Clone)]
-    pub struct CSSOMNode {
-        selector: Vec<String>,
+    pub struct Rule {
+        selectors: Vec<String>,
         declarations: Vec<Declaration>,
         comment: String
     }
 
-    struct Selector {
+    pub struct Stylesheet {
+        rules: Vec<Rule>,
+    }
 
+    // https://developer.mozilla.org/ja/docs/Web/CSS/CSS_Selectors
+    pub struct Selector {
+        tag_name: String,
+        element: String,
+        class: Vec<String>,
+        id: String,
+        attribute: String,
     }
 
     #[derive(Default, Clone)]
@@ -43,7 +52,7 @@ pub mod handmade_css_parser {
         fn push_css_from_link(&mut self, link: String);
         fn get_css_text(&mut self, idx: usize) -> String;
         fn handle_link_format(&mut self, link: String) -> String;
-        fn parse_css(& mut self, idx: usize) -> Vec<CSSOMNode>;
+        fn parse_css(& mut self, idx: usize) -> Vec<Rule>;
     }
 
     #[derive(Default)]
@@ -129,7 +138,7 @@ pub mod handmade_css_parser {
             result
         }
 
-        fn parse_css(& mut self, idx: usize) -> Vec<CSSOMNode> {
+        fn parse_css(& mut self, idx: usize) -> Vec<Rule> {
             let mut result = Vec::new();
             let mut tmp_str = String::new();
             let mut comment_str = String::new();
@@ -148,7 +157,7 @@ pub mod handmade_css_parser {
                         if (i == '/') && (is_previous_asterisk == true) {
                             is_comment = false;
                             comment_str.pop();
-                            let mut new_node: CSSOMNode = Default::default();
+                            let mut new_node: Rule = Default::default();
                             new_node.comment = comment_str.clone();
                             result.push(new_node);
                             continue;
@@ -233,15 +242,15 @@ pub mod handmade_css_parser {
                         tmp_str = String::new();
 
                         if i == '}' {
-                            let mut new_node: CSSOMNode = Default::default();
+                            let mut new_node: Rule = Default::default();
                             if !stack_for_nest.is_empty() {
-                                new_node.selector = stack_for_nest[stack_for_nest.len()-1].clone();
+                                new_node.selectors = stack_for_nest[stack_for_nest.len()-1].clone();
                                 stack_for_nest.pop();
                             } else {
                                 println!("NO SELECTOR");
                             }
                             new_node.declarations = declaration_vec;
-                            if !new_node.selector.is_empty() || !new_node.declarations.is_empty() {
+                            if !new_node.selectors.is_empty() || !new_node.declarations.is_empty() {
                                 result.push(new_node);
                             }
                             declaration_vec = Vec::new();
@@ -258,8 +267,8 @@ pub mod handmade_css_parser {
             
             // for debug
             for i in &result {
-                print!("SELECTOR:");
-                for j in &i.selector {
+                print!("SELECTORS:");
+                for j in &i.selectors {
                     print!("{},", &j);
                 }
                 println!("\n\nDECLARATIONS:");
