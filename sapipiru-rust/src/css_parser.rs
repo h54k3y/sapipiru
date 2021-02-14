@@ -24,7 +24,16 @@ pub mod handmade_css_parser {
         rules: Vec<Rule>,
     }
 
+    pub enum SelectorType {
+        Element,
+        Id,
+        Class,
+        Universal,
+        Attribute
+    }
+
     // https://developer.mozilla.org/ja/docs/Web/CSS/CSS_Selectors
+    #[derive(Default, Clone)]
     pub struct Selector {
         tag_name: String,
         element: String,
@@ -52,7 +61,8 @@ pub mod handmade_css_parser {
         fn push_css_from_link(&mut self, link: String);
         fn get_css_text(&mut self, idx: usize) -> String;
         fn handle_link_format(&mut self, link: String) -> String;
-        fn parse_css(& mut self, idx: usize) -> Vec<Rule>;
+        fn parse_css(&mut self, idx: usize) -> Vec<Rule>;
+        fn handle_selector(&mut self, selector_str: String);
     }
 
     #[derive(Default)]
@@ -283,6 +293,47 @@ pub mod handmade_css_parser {
             }
 
             result
+        }
+
+        fn handle_selector(&mut self, selector_str: String) {
+            let mut selector: Selector = Default::default();
+            let mut selector_type: SelectorType = SelectorType::Element;
+            let mut tmp_class: String = String::new();
+            for i in selector_str.chars() {
+                match i {
+                    '#' => {
+                        selector_type = SelectorType::Id;
+                        continue;
+                    }
+                    '.' => {
+                        if !tmp_class.is_empty() {
+                            selector.class.push(tmp_class);
+                            tmp_class = String::new();
+                        }
+                        selector_type = SelectorType::Class;
+                        continue;
+                    }
+                    '*' => {
+                        selector_type = SelectorType::Universal;
+                        continue;
+                    }
+                    _ => {
+
+                    }
+                }
+
+                match selector_type {
+                    SelectorType::Id => {
+                        selector.id.push(i);
+                    }
+                    SelectorType::Class => {
+                        tmp_class.push(i);
+                    }
+                    _ => {
+
+                    }
+                }
+            }
         }
     }
 
