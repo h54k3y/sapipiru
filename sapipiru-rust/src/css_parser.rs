@@ -20,16 +20,29 @@ pub mod handmade_css_parser {
         comment: String
     }
 
+    #[derive(Default, Clone)]
+    pub struct RuleAsString {
+        selector: String,
+        declaration: String
+    }
+
     pub struct Stylesheet {
         rules: Vec<Rule>,
     }
 
     pub enum SelectorType {
         Element,
-        Id,
-        Class,
-        Universal,
-        Attribute
+        Id, // #
+        Class, //.
+        Universal, // *
+        Attribute, // []
+        Colon, // :
+        Desendants, // " "
+        Child, // >
+        NextSibiling, // +
+        SubsequentSibling, // ~
+        Pseudo, // ::
+        Column // ||
     }
 
     // https://developer.mozilla.org/ja/docs/Web/CSS/CSS_Selectors
@@ -61,6 +74,7 @@ pub mod handmade_css_parser {
         fn push_css_from_link(&mut self, link: String);
         fn get_css_text(&mut self, idx: usize) -> String;
         fn handle_link_format(&mut self, link: String) -> String;
+        fn parse_selector_and_declarations(& mut self, idx: usize) -> Vec<RuleAsString>;
         fn parse_css(&mut self, idx: usize) -> Vec<Rule>;
         fn handle_selector(&mut self, selector_str: String);
     }
@@ -97,7 +111,7 @@ pub mod handmade_css_parser {
                 println!("{}\n", &i);
                 let format_link = self.handle_link_format(i);
                 println!("After");
-                println!("{}", &format_link);
+                println!("{}\n\n", &format_link);
                 self.links.push(format_link.clone());
                 self.push_css_from_link(format_link);
             }
@@ -148,6 +162,23 @@ pub mod handmade_css_parser {
             result
         }
 
+        fn parse_selector_and_declarations(& mut self, idx: usize) -> Vec<RuleAsString> {
+            let mut result = Vec::new();
+            let mut tmp_str = String::new();
+            let mut comment_str = String::new();
+            let mut current_selectors: Vec<String> = Vec::new();
+            let mut declaration_vec: Vec<String> = Vec::new();
+            let mut stack_for_nest: Vec<Vec<String>> = Vec::new();
+            let mut is_previous_slash: bool = false;
+            let mut is_previous_asterisk: bool = false;
+            let mut is_previous_space: bool = false;
+            let mut is_comment: bool = false;
+            for i in self.css_strs[idx].chars() {
+                
+            }
+            result
+        }
+
         fn parse_css(& mut self, idx: usize) -> Vec<Rule> {
             let mut result = Vec::new();
             let mut tmp_str = String::new();
@@ -183,6 +214,7 @@ pub mod handmade_css_parser {
                         let mut selector_str = String::new();
                         let mut count_in_selector = 0;
                         let mut is_previous_space_j = false;
+                        // handling selector
                         for j in tmp_str.chars() {
                             if j == ',' {
                                 count_in_selector = 0;
@@ -276,7 +308,7 @@ pub mod handmade_css_parser {
             }
             
             // for debug
-            for i in &result {
+            /*for i in &result {
                 print!("SELECTORS:");
                 for j in &i.selectors {
                     print!("{},", &j);
@@ -290,7 +322,7 @@ pub mod handmade_css_parser {
                 println!("COMMENT:");
                 println!("{}", &i.comment);
                 println!("\n");
-            }
+            }*/
 
             result
         }
@@ -316,6 +348,27 @@ pub mod handmade_css_parser {
                     '*' => {
                         selector_type = SelectorType::Universal;
                         continue;
+                    }
+                    '[' => {
+                        selector_type = SelectorType::Attribute;
+                    }
+                    ']' => {
+                        //
+                    }
+                    ':' => {
+                        selector_type = SelectorType::Colon;
+                    }
+                    ' ' => {
+                        selector_type = SelectorType::Desendants;
+                    }
+                    '>' => {
+                        selector_type = SelectorType::Child;
+                    }
+                    '+' => {
+                        selector_type = SelectorType::SubsequentSibling;
+                    }
+                    '~' => {
+                        selector_type = SelectorType::NextSibiling;
                     }
                     _ => {
 
