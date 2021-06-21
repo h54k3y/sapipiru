@@ -15,7 +15,7 @@ pub mod handmade_css_parser {
 
     #[derive(Default, Clone)]
     pub struct Rule {
-        selectors: Vec<String>,
+        selectors: Vec<Selector>,
         declarations: Vec<Declaration>,
         comment: String
     }
@@ -30,6 +30,7 @@ pub mod handmade_css_parser {
         rules: Vec<Rule>,
     }
 
+    #[derive(PartialEq, Eq, Debug, Clone)]
     pub enum SelectorType {
         Element,
         Id, // #
@@ -50,9 +51,13 @@ pub mod handmade_css_parser {
     pub struct Selector {
         tag_name: String,
         element: String,
+        base: String,
         class: Vec<String>,
         id: String,
-        attribute: String,
+        attribute: Vec<String>,
+        join_node: Vec<(SelectorType, String)>,
+        after_colon: Vec<String>,
+        is_universal: bool
     }
 
     #[derive(Default, Clone)]
@@ -76,7 +81,6 @@ pub mod handmade_css_parser {
         fn handle_link_format(&mut self, link: String) -> String;
         fn parse_selector_and_declarations(& mut self, idx: usize) -> Vec<RuleAsString>;
         fn parse_css(&mut self, idx: usize) -> Vec<Rule>;
-        fn handle_selector(&mut self, selector_str: String);
     }
 
     #[derive(Default)]
@@ -84,6 +88,228 @@ pub mod handmade_css_parser {
         current_dir: String,
         links: Vec<String>,
         css_strs: Vec<String>
+    }
+
+    pub fn handle_selector(selector_str: String) ->Selector {
+        let mut selector: Selector = Default::default();
+        let mut selector_type: SelectorType = SelectorType::Element;
+        let mut tmp_class: String = String::new();
+        let mut tmp_string: String = String::new();
+        for i in selector_str.chars() {
+            match i {
+                '#' => {
+                    if !tmp_string.is_empty() {
+                        if selector_type == SelectorType::Id {
+                            selector.id = tmp_string.clone();
+                        } else if selector_type == SelectorType::Class {
+                            selector.class.push(tmp_string.clone());
+                        } else if selector_type == SelectorType::Attribute {
+                            selector.attribute.push(tmp_string.clone());
+                        } else if selector_type == SelectorType::Colon {
+                            selector.after_colon.push(tmp_string.clone());
+                        } else if (selector_type == SelectorType::Desendants) || (selector_type == SelectorType::Child) 
+                        || (selector_type == SelectorType::SubsequentSibling) || (selector_type == SelectorType::NextSibiling) {
+                            selector.join_node.push((selector_type.clone(), tmp_string.clone()));
+                        } else if selector_type == SelectorType::Element {
+                            selector.base = tmp_string.clone();
+                        }
+                        tmp_string = String::new();
+                    }
+                    selector_type = SelectorType::Id;
+                    continue;
+                }
+                '.' => {
+                    if !tmp_string.is_empty() {
+                        if selector_type == SelectorType::Id {
+                            selector.id = tmp_string.clone();
+                        } else if selector_type == SelectorType::Class {
+                            selector.class.push(tmp_string.clone());
+                        } else if selector_type == SelectorType::Attribute {
+                            selector.attribute.push(tmp_string.clone());
+                        } else if selector_type == SelectorType::Colon {
+                            selector.after_colon.push(tmp_string.clone());
+                        } else if (selector_type == SelectorType::Desendants) || (selector_type == SelectorType::Child) 
+                        || (selector_type == SelectorType::SubsequentSibling) || (selector_type == SelectorType::NextSibiling) {
+                            selector.join_node.push((selector_type.clone(), tmp_string.clone()));
+                        } else if selector_type == SelectorType::Element {
+                            selector.base = tmp_string.clone();
+                        }
+                        tmp_string = String::new();
+                    }
+                    selector_type = SelectorType::Class;
+                    continue;
+                }
+                '*' => {
+                    selector.is_universal = true;
+                    if !tmp_string.is_empty() {
+                        if selector_type == SelectorType::Id {
+                            selector.id = tmp_string.clone();
+                        } else if selector_type == SelectorType::Class {
+                            selector.class.push(tmp_string.clone());
+                        } else if selector_type == SelectorType::Attribute {
+                            selector.attribute.push(tmp_string.clone());
+                        } else if selector_type == SelectorType::Colon {
+                            selector.after_colon.push(tmp_string.clone());
+                        } else if (selector_type == SelectorType::Desendants) || (selector_type == SelectorType::Child) 
+                        || (selector_type == SelectorType::SubsequentSibling) || (selector_type == SelectorType::NextSibiling) {
+                            selector.join_node.push((selector_type.clone(), tmp_string.clone()));
+                        } else if selector_type == SelectorType::Element {
+                            selector.base = tmp_string.clone();
+                        }
+                        tmp_string = String::new();
+                    }
+                    selector_type = SelectorType::Element;
+                    continue;
+                }
+                '[' => {
+                    if !tmp_string.is_empty() {
+                        if selector_type == SelectorType::Id {
+                            selector.id = tmp_string.clone();
+                        } else if selector_type == SelectorType::Class {
+                            selector.class.push(tmp_string.clone());
+                        } else if selector_type == SelectorType::Attribute {
+                            selector.attribute.push(tmp_string.clone());
+                        } else if selector_type == SelectorType::Colon {
+                            selector.after_colon.push(tmp_string.clone());
+                        } else if (selector_type == SelectorType::Desendants) || (selector_type == SelectorType::Child) 
+                        || (selector_type == SelectorType::SubsequentSibling) || (selector_type == SelectorType::NextSibiling) {
+                            selector.join_node.push((selector_type.clone(), tmp_string.clone()));
+                        } else if selector_type == SelectorType::Element {
+                            selector.base = tmp_string.clone();
+                        }
+                        tmp_string = String::new();
+                    }
+                    selector_type = SelectorType::Attribute;
+                }
+                ']' => {
+                    // do nothing
+                    selector_type = SelectorType::Element;
+                }
+                ':' => {
+                    if !tmp_string.is_empty() {
+                        if selector_type == SelectorType::Id {
+                            selector.id = tmp_string.clone();
+                        } else if selector_type == SelectorType::Class {
+                            selector.class.push(tmp_string.clone());
+                        } else if selector_type == SelectorType::Attribute {
+                            selector.attribute.push(tmp_string.clone());
+                        } else if selector_type == SelectorType::Colon {
+                            selector.after_colon.push(tmp_string.clone());
+                        } else if (selector_type == SelectorType::Desendants) || (selector_type == SelectorType::Child) 
+                        || (selector_type == SelectorType::SubsequentSibling) || (selector_type == SelectorType::NextSibiling) {
+                            selector.join_node.push((selector_type.clone(), tmp_string.clone()));
+                        } else if selector_type == SelectorType::Element {
+                            selector.base = tmp_string.clone();
+                        }
+                        tmp_string = String::new();
+                    }
+                    selector_type = SelectorType::Colon;
+                }
+                ' ' => {
+                    if !tmp_string.is_empty() {
+                        if selector_type == SelectorType::Id {
+                            selector.id = tmp_string.clone();
+                        } else if selector_type == SelectorType::Class {
+                            selector.class.push(tmp_string.clone());
+                        } else if selector_type == SelectorType::Attribute {
+                            selector.attribute.push(tmp_string.clone());
+                        } else if selector_type == SelectorType::Colon {
+                            selector.after_colon.push(tmp_string.clone());
+                        } else if (selector_type == SelectorType::Desendants) || (selector_type == SelectorType::Child) 
+                        || (selector_type == SelectorType::SubsequentSibling) || (selector_type == SelectorType::NextSibiling) {
+                            selector.join_node.push((selector_type.clone(), tmp_string.clone()));
+                        } else if selector_type == SelectorType::Element {
+                            selector.base = tmp_string.clone();
+                        }
+                        tmp_string = String::new();
+                    }
+                    selector_type = SelectorType::Desendants;
+                }
+                '>' => {
+                    if !tmp_string.is_empty() {
+                        if selector_type == SelectorType::Id {
+                            selector.id = tmp_string.clone();
+                        } else if selector_type == SelectorType::Class {
+                            selector.class.push(tmp_string.clone());
+                        } else if selector_type == SelectorType::Attribute {
+                            selector.attribute.push(tmp_string.clone());
+                        } else if selector_type == SelectorType::Colon {
+                            selector.after_colon.push(tmp_string.clone());
+                        } else if (selector_type == SelectorType::Desendants) || (selector_type == SelectorType::Child) 
+                        || (selector_type == SelectorType::SubsequentSibling) || (selector_type == SelectorType::NextSibiling) {
+                            selector.join_node.push((selector_type.clone(), tmp_string.clone()));
+                        } else if selector_type == SelectorType::Element {
+                            selector.base = tmp_string.clone();
+                        }
+                        tmp_string = String::new();
+                    }
+                    selector_type = SelectorType::Child;
+                }
+                '+' => {
+                    if !tmp_string.is_empty() {
+                        if selector_type == SelectorType::Id {
+                            selector.id = tmp_string.clone();
+                        } else if selector_type == SelectorType::Class {
+                            selector.class.push(tmp_string.clone());
+                        } else if selector_type == SelectorType::Attribute {
+                            selector.attribute.push(tmp_string.clone());
+                        } else if selector_type == SelectorType::Colon {
+                            selector.after_colon.push(tmp_string.clone());
+                        } else if (selector_type == SelectorType::Desendants) || (selector_type == SelectorType::Child) 
+                        || (selector_type == SelectorType::SubsequentSibling) || (selector_type == SelectorType::NextSibiling) {
+                            selector.join_node.push((selector_type.clone(), tmp_string.clone()));
+                        } else if selector_type == SelectorType::Element {
+                            selector.base = tmp_string.clone();
+                        }
+                        tmp_string = String::new();
+                    }
+                    selector_type = SelectorType::SubsequentSibling;
+                }
+                '~' => {
+                    if !tmp_string.is_empty() {
+                        if selector_type == SelectorType::Id {
+                            selector.id = tmp_string.clone();
+                        } else if selector_type == SelectorType::Class {
+                            selector.class.push(tmp_string.clone());
+                        } else if selector_type == SelectorType::Attribute {
+                            selector.attribute.push(tmp_string.clone());
+                        } else if selector_type == SelectorType::Colon {
+                            selector.after_colon.push(tmp_string.clone());
+                        } else if (selector_type == SelectorType::Desendants) || (selector_type == SelectorType::Child) 
+                        || (selector_type == SelectorType::SubsequentSibling) || (selector_type == SelectorType::NextSibiling) {
+                            selector.join_node.push((selector_type.clone(), tmp_string.clone()));
+                        } else if selector_type == SelectorType::Element {
+                            selector.base = tmp_string.clone();
+                        }
+                        tmp_string = String::new();
+                    }
+                    selector_type = SelectorType::NextSibiling;
+                }
+                _ => {
+                    tmp_string.push(i.clone());
+                }
+            }
+        }
+        
+        if !tmp_string.is_empty() {
+            if selector_type == SelectorType::Id {
+                selector.id = tmp_string.clone();
+            } else if selector_type == SelectorType::Class {
+                selector.class.push(tmp_string.clone());
+            } else if selector_type == SelectorType::Attribute {
+                selector.attribute.push(tmp_string.clone());
+            } else if selector_type == SelectorType::Colon {
+                selector.after_colon.push(tmp_string.clone());
+            } else if (selector_type == SelectorType::Desendants) || (selector_type == SelectorType::Child) 
+            || (selector_type == SelectorType::SubsequentSibling) || (selector_type == SelectorType::NextSibiling) {
+                selector.join_node.push((selector_type.clone(), tmp_string.clone()));
+            } else if selector_type == SelectorType::Element {
+                selector.base = tmp_string.clone();
+            }
+        }
+
+        selector.element = selector_str.clone();
+        selector
     }
 
     impl HandleCSSData for CSSData {
@@ -286,7 +512,9 @@ pub mod handmade_css_parser {
                         if i == '}' {
                             let mut new_node: Rule = Default::default();
                             if !stack_for_nest.is_empty() {
-                                new_node.selectors = stack_for_nest[stack_for_nest.len()-1].clone();
+                                for j in stack_for_nest[stack_for_nest.len()-1].clone() {
+                                    new_node.selectors.push(handle_selector(j.clone()));
+                                }
                                 stack_for_nest.pop();
                             } else {
                                 println!("NO SELECTOR");
@@ -308,85 +536,46 @@ pub mod handmade_css_parser {
             }
             
             // for debug
-            /*for i in &result {
-                print!("SELECTORS:");
+            for i in &result {
+                println!("SELECTORS:");
                 for j in &i.selectors {
-                    print!("{},", &j);
+                    println!("element:{}", &j.element);
+                    //println!("base:{}, ", &j.base);
+                    print!("class:");
+                    for k in &j.class {
+                        print!("{}, ", &k);
+                    }
+                    println!("\n");
+                    println!("id:{}", &j.id);
+                    print!("attribute:");
+                    for k in &j.attribute {
+                        print!("{}, ", &k);
+                    }
+                    println!("\n");
+                    print!("join_node:");
+                    for k in &j.join_node {
+                        print!("{}, ", &k.1);
+                    }
+                    println!("\n");
+                    print!("after_colon:");
+                    for k in &j.after_colon {
+                        print!("{}, ", &k);
+                    }
+                    println!("\n");
+                    println!("is_universal:{}", &j.is_universal);
                 }
                 println!("\n\nDECLARATIONS:");
                 for j in &i.declarations {
-                    print!("property:{}", &j.propery);
-                    println!(",value:{}", &j.value);
+                    println!("property:{}", &j.propery);
+                    println!("value:{}", &j.value);
+                    println!("\n");
                 }
-                println!("\n");
                 println!("COMMENT:");
                 println!("{}", &i.comment);
                 println!("\n");
-            }*/
+            }
 
             result
-        }
-
-        fn handle_selector(&mut self, selector_str: String) {
-            let mut selector: Selector = Default::default();
-            let mut selector_type: SelectorType = SelectorType::Element;
-            let mut tmp_class: String = String::new();
-            for i in selector_str.chars() {
-                match i {
-                    '#' => {
-                        selector_type = SelectorType::Id;
-                        continue;
-                    }
-                    '.' => {
-                        if !tmp_class.is_empty() {
-                            selector.class.push(tmp_class);
-                            tmp_class = String::new();
-                        }
-                        selector_type = SelectorType::Class;
-                        continue;
-                    }
-                    '*' => {
-                        selector_type = SelectorType::Universal;
-                        continue;
-                    }
-                    '[' => {
-                        selector_type = SelectorType::Attribute;
-                    }
-                    ']' => {
-                        //
-                    }
-                    ':' => {
-                        selector_type = SelectorType::Colon;
-                    }
-                    ' ' => {
-                        selector_type = SelectorType::Desendants;
-                    }
-                    '>' => {
-                        selector_type = SelectorType::Child;
-                    }
-                    '+' => {
-                        selector_type = SelectorType::SubsequentSibling;
-                    }
-                    '~' => {
-                        selector_type = SelectorType::NextSibiling;
-                    }
-                    _ => {
-
-                    }
-                }
-
-                match selector_type {
-                    SelectorType::Id => {
-                        selector.id.push(i);
-                    }
-                    SelectorType::Class => {
-                        tmp_class.push(i);
-                    }
-                    _ => {
-
-                    }
-                }
-            }
         }
     }
 
