@@ -8,6 +8,7 @@ pub mod handmade_css_parser {
     use std::sync::Mutex;
     use std::clone::Clone;
     use std::convert::TryInto;
+    use std::fmt;
 
     /*lazy_static! {
         pub static ref CSSTEXT: Mutex<String> = Mutex::new("".to_string());
@@ -20,11 +21,11 @@ pub mod handmade_css_parser {
         comment: String
     }
 
-    #[derive(Default, Clone)]
+    /*#[derive(Default, Clone)]
     pub struct RuleAsString {
         selector: String,
         declaration: String
-    }
+    }*/
 
     pub struct Stylesheet {
         rules: Vec<Rule>,
@@ -46,18 +47,36 @@ pub mod handmade_css_parser {
         Column // ||
     }
 
+    impl fmt::Display for SelectorType {
+        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+           match *self {
+            SelectorType::Element => write!(f, "Element"),
+            SelectorType::Id => write!(f, "Id"),
+            SelectorType::Class => write!(f, "Class"),
+            SelectorType::Universal => write!(f, "Universal"),
+            SelectorType::Attribute => write!(f, "Attribute"),
+            SelectorType::Colon => write!(f, "Colon"),
+            SelectorType::Desendants => write!(f, "Desendants"),
+            SelectorType::Child => write!(f, "Child"),
+            SelectorType::NextSibiling => write!(f, "NextSibiling"),
+            SelectorType::SubsequentSibling => write!(f, "SubsequentSibling"),
+            SelectorType::Pseudo => write!(f, "Pseudo"),
+            SelectorType::Column => write!(f, "Column"),
+           }
+        }
+    }
+
+    #[derive(Clone)]
+    pub struct SelectorItem {
+        selector_type: SelectorType,
+        item_string: String,
+    }
+
     // https://developer.mozilla.org/ja/docs/Web/CSS/CSS_Selectors
     #[derive(Default, Clone)]
     pub struct Selector {
-        tag_name: String,
-        element: String,
-        base: String,
-        class: Vec<String>,
-        id: String,
-        attribute: Vec<String>,
-        join_node: Vec<(SelectorType, String)>,
-        after_colon: Vec<String>,
-        is_universal: bool
+        all_string: String,
+        items: Vec<SelectorItem>
     }
 
     #[derive(Default, Clone)]
@@ -79,7 +98,7 @@ pub mod handmade_css_parser {
         fn push_css_from_link(&mut self, link: String);
         fn get_css_text(&mut self, idx: usize) -> String;
         fn handle_link_format(&mut self, link: String) -> String;
-        fn parse_selector_and_declarations(& mut self, idx: usize) -> Vec<RuleAsString>;
+        //fn parse_selector_and_declarations(& mut self, idx: usize) -> Vec<RuleAsString>;
         fn parse_css(&mut self, idx: usize) -> Vec<Rule>;
     }
 
@@ -90,225 +109,37 @@ pub mod handmade_css_parser {
         css_strs: Vec<String>
     }
 
-    pub fn handle_selector(selector_str: String) ->Selector {
+    const SLECECTORCHARS: [(char, SelectorType); 9] = [
+        ('#', SelectorType::Id), ('.', SelectorType::Class), ('*', SelectorType::Universal), ('[', SelectorType::Attribute), 
+        (':', SelectorType::Colon), (' ', SelectorType::Desendants), ('>', SelectorType::Child), ('+', SelectorType::NextSibiling), ('~', SelectorType::SubsequentSibling)];
+
+    pub fn handle_selector(selector_str: String) -> Selector {
         let mut selector: Selector = Default::default();
-        let mut selector_type: SelectorType = SelectorType::Element;
-        let mut tmp_class: String = String::new();
+        let mut current_selector_type: SelectorType = SelectorType::Element;
         let mut tmp_string: String = String::new();
         for i in selector_str.chars() {
-            match i {
-                '#' => {
-                    if !tmp_string.is_empty() {
-                        if selector_type == SelectorType::Id {
-                            selector.id = tmp_string.clone();
-                        } else if selector_type == SelectorType::Class {
-                            selector.class.push(tmp_string.clone());
-                        } else if selector_type == SelectorType::Attribute {
-                            selector.attribute.push(tmp_string.clone());
-                        } else if selector_type == SelectorType::Colon {
-                            selector.after_colon.push(tmp_string.clone());
-                        } else if (selector_type == SelectorType::Desendants) || (selector_type == SelectorType::Child) 
-                        || (selector_type == SelectorType::SubsequentSibling) || (selector_type == SelectorType::NextSibiling) {
-                            selector.join_node.push((selector_type.clone(), tmp_string.clone()));
-                        } else if selector_type == SelectorType::Element {
-                            selector.base = tmp_string.clone();
-                        }
+            let mut is_found = false;
+            for j in &SLECECTORCHARS {
+                if i == j.0 {
+                    if !tmp_string.is_empty() || (current_selector_type != SelectorType::Element) {
+                        let current_item = SelectorItem {
+                            selector_type: current_selector_type.clone(), 
+                            item_string: tmp_string.clone()
+                        };
                         tmp_string = String::new();
+                        selector.items.push(current_item);
                     }
-                    selector_type = SelectorType::Id;
+                    current_selector_type = j.1.clone();
+                    is_found = true;
                     continue;
-                }
-                '.' => {
-                    if !tmp_string.is_empty() {
-                        if selector_type == SelectorType::Id {
-                            selector.id = tmp_string.clone();
-                        } else if selector_type == SelectorType::Class {
-                            selector.class.push(tmp_string.clone());
-                        } else if selector_type == SelectorType::Attribute {
-                            selector.attribute.push(tmp_string.clone());
-                        } else if selector_type == SelectorType::Colon {
-                            selector.after_colon.push(tmp_string.clone());
-                        } else if (selector_type == SelectorType::Desendants) || (selector_type == SelectorType::Child) 
-                        || (selector_type == SelectorType::SubsequentSibling) || (selector_type == SelectorType::NextSibiling) {
-                            selector.join_node.push((selector_type.clone(), tmp_string.clone()));
-                        } else if selector_type == SelectorType::Element {
-                            selector.base = tmp_string.clone();
-                        }
-                        tmp_string = String::new();
-                    }
-                    selector_type = SelectorType::Class;
-                    continue;
-                }
-                '*' => {
-                    selector.is_universal = true;
-                    if !tmp_string.is_empty() {
-                        if selector_type == SelectorType::Id {
-                            selector.id = tmp_string.clone();
-                        } else if selector_type == SelectorType::Class {
-                            selector.class.push(tmp_string.clone());
-                        } else if selector_type == SelectorType::Attribute {
-                            selector.attribute.push(tmp_string.clone());
-                        } else if selector_type == SelectorType::Colon {
-                            selector.after_colon.push(tmp_string.clone());
-                        } else if (selector_type == SelectorType::Desendants) || (selector_type == SelectorType::Child) 
-                        || (selector_type == SelectorType::SubsequentSibling) || (selector_type == SelectorType::NextSibiling) {
-                            selector.join_node.push((selector_type.clone(), tmp_string.clone()));
-                        } else if selector_type == SelectorType::Element {
-                            selector.base = tmp_string.clone();
-                        }
-                        tmp_string = String::new();
-                    }
-                    selector_type = SelectorType::Element;
-                    continue;
-                }
-                '[' => {
-                    if !tmp_string.is_empty() {
-                        if selector_type == SelectorType::Id {
-                            selector.id = tmp_string.clone();
-                        } else if selector_type == SelectorType::Class {
-                            selector.class.push(tmp_string.clone());
-                        } else if selector_type == SelectorType::Attribute {
-                            selector.attribute.push(tmp_string.clone());
-                        } else if selector_type == SelectorType::Colon {
-                            selector.after_colon.push(tmp_string.clone());
-                        } else if (selector_type == SelectorType::Desendants) || (selector_type == SelectorType::Child) 
-                        || (selector_type == SelectorType::SubsequentSibling) || (selector_type == SelectorType::NextSibiling) {
-                            selector.join_node.push((selector_type.clone(), tmp_string.clone()));
-                        } else if selector_type == SelectorType::Element {
-                            selector.base = tmp_string.clone();
-                        }
-                        tmp_string = String::new();
-                    }
-                    selector_type = SelectorType::Attribute;
-                }
-                ']' => {
-                    // do nothing
-                    selector_type = SelectorType::Element;
-                }
-                ':' => {
-                    if !tmp_string.is_empty() {
-                        if selector_type == SelectorType::Id {
-                            selector.id = tmp_string.clone();
-                        } else if selector_type == SelectorType::Class {
-                            selector.class.push(tmp_string.clone());
-                        } else if selector_type == SelectorType::Attribute {
-                            selector.attribute.push(tmp_string.clone());
-                        } else if selector_type == SelectorType::Colon {
-                            selector.after_colon.push(tmp_string.clone());
-                        } else if (selector_type == SelectorType::Desendants) || (selector_type == SelectorType::Child) 
-                        || (selector_type == SelectorType::SubsequentSibling) || (selector_type == SelectorType::NextSibiling) {
-                            selector.join_node.push((selector_type.clone(), tmp_string.clone()));
-                        } else if selector_type == SelectorType::Element {
-                            selector.base = tmp_string.clone();
-                        }
-                        tmp_string = String::new();
-                    }
-                    selector_type = SelectorType::Colon;
-                }
-                ' ' => {
-                    if !tmp_string.is_empty() {
-                        if selector_type == SelectorType::Id {
-                            selector.id = tmp_string.clone();
-                        } else if selector_type == SelectorType::Class {
-                            selector.class.push(tmp_string.clone());
-                        } else if selector_type == SelectorType::Attribute {
-                            selector.attribute.push(tmp_string.clone());
-                        } else if selector_type == SelectorType::Colon {
-                            selector.after_colon.push(tmp_string.clone());
-                        } else if (selector_type == SelectorType::Desendants) || (selector_type == SelectorType::Child) 
-                        || (selector_type == SelectorType::SubsequentSibling) || (selector_type == SelectorType::NextSibiling) {
-                            selector.join_node.push((selector_type.clone(), tmp_string.clone()));
-                        } else if selector_type == SelectorType::Element {
-                            selector.base = tmp_string.clone();
-                        }
-                        tmp_string = String::new();
-                    }
-                    selector_type = SelectorType::Desendants;
-                }
-                '>' => {
-                    if !tmp_string.is_empty() {
-                        if selector_type == SelectorType::Id {
-                            selector.id = tmp_string.clone();
-                        } else if selector_type == SelectorType::Class {
-                            selector.class.push(tmp_string.clone());
-                        } else if selector_type == SelectorType::Attribute {
-                            selector.attribute.push(tmp_string.clone());
-                        } else if selector_type == SelectorType::Colon {
-                            selector.after_colon.push(tmp_string.clone());
-                        } else if (selector_type == SelectorType::Desendants) || (selector_type == SelectorType::Child) 
-                        || (selector_type == SelectorType::SubsequentSibling) || (selector_type == SelectorType::NextSibiling) {
-                            selector.join_node.push((selector_type.clone(), tmp_string.clone()));
-                        } else if selector_type == SelectorType::Element {
-                            selector.base = tmp_string.clone();
-                        }
-                        tmp_string = String::new();
-                    }
-                    selector_type = SelectorType::Child;
-                }
-                '+' => {
-                    if !tmp_string.is_empty() {
-                        if selector_type == SelectorType::Id {
-                            selector.id = tmp_string.clone();
-                        } else if selector_type == SelectorType::Class {
-                            selector.class.push(tmp_string.clone());
-                        } else if selector_type == SelectorType::Attribute {
-                            selector.attribute.push(tmp_string.clone());
-                        } else if selector_type == SelectorType::Colon {
-                            selector.after_colon.push(tmp_string.clone());
-                        } else if (selector_type == SelectorType::Desendants) || (selector_type == SelectorType::Child) 
-                        || (selector_type == SelectorType::SubsequentSibling) || (selector_type == SelectorType::NextSibiling) {
-                            selector.join_node.push((selector_type.clone(), tmp_string.clone()));
-                        } else if selector_type == SelectorType::Element {
-                            selector.base = tmp_string.clone();
-                        }
-                        tmp_string = String::new();
-                    }
-                    selector_type = SelectorType::SubsequentSibling;
-                }
-                '~' => {
-                    if !tmp_string.is_empty() {
-                        if selector_type == SelectorType::Id {
-                            selector.id = tmp_string.clone();
-                        } else if selector_type == SelectorType::Class {
-                            selector.class.push(tmp_string.clone());
-                        } else if selector_type == SelectorType::Attribute {
-                            selector.attribute.push(tmp_string.clone());
-                        } else if selector_type == SelectorType::Colon {
-                            selector.after_colon.push(tmp_string.clone());
-                        } else if (selector_type == SelectorType::Desendants) || (selector_type == SelectorType::Child) 
-                        || (selector_type == SelectorType::SubsequentSibling) || (selector_type == SelectorType::NextSibiling) {
-                            selector.join_node.push((selector_type.clone(), tmp_string.clone()));
-                        } else if selector_type == SelectorType::Element {
-                            selector.base = tmp_string.clone();
-                        }
-                        tmp_string = String::new();
-                    }
-                    selector_type = SelectorType::NextSibiling;
-                }
-                _ => {
-                    tmp_string.push(i.clone());
-                }
+                } 
             }
-        }
-        
-        if !tmp_string.is_empty() {
-            if selector_type == SelectorType::Id {
-                selector.id = tmp_string.clone();
-            } else if selector_type == SelectorType::Class {
-                selector.class.push(tmp_string.clone());
-            } else if selector_type == SelectorType::Attribute {
-                selector.attribute.push(tmp_string.clone());
-            } else if selector_type == SelectorType::Colon {
-                selector.after_colon.push(tmp_string.clone());
-            } else if (selector_type == SelectorType::Desendants) || (selector_type == SelectorType::Child) 
-            || (selector_type == SelectorType::SubsequentSibling) || (selector_type == SelectorType::NextSibiling) {
-                selector.join_node.push((selector_type.clone(), tmp_string.clone()));
-            } else if selector_type == SelectorType::Element {
-                selector.base = tmp_string.clone();
+            if !is_found {
+                tmp_string.push(i.clone());
             }
         }
 
-        selector.element = selector_str.clone();
+        selector.all_string = selector_str.clone();
         selector
     }
 
@@ -388,7 +219,7 @@ pub mod handmade_css_parser {
             result
         }
 
-        fn parse_selector_and_declarations(& mut self, idx: usize) -> Vec<RuleAsString> {
+        /*fn parse_selector_and_declarations(& mut self, idx: usize) -> Vec<RuleAsString> {
             let mut result = Vec::new();
             let mut tmp_str = String::new();
             let mut comment_str = String::new();
@@ -403,7 +234,7 @@ pub mod handmade_css_parser {
                 
             }
             result
-        }
+        }*/
 
         fn parse_css(& mut self, idx: usize) -> Vec<Rule> {
             let mut result = Vec::new();
@@ -539,30 +370,14 @@ pub mod handmade_css_parser {
             for i in &result {
                 println!("SELECTORS:");
                 for j in &i.selectors {
-                    println!("element:{}", &j.element);
+                    println!("all_string:{}", &j.all_string);
                     //println!("base:{}, ", &j.base);
-                    print!("class:");
-                    for k in &j.class {
-                        print!("{}, ", &k);
+                    print!("items:");
+                    for k in &j.items {
+                        print!("[ {}, ", &k.selector_type);
+                        print!("{} ],  ", &k.item_string);
                     }
                     println!("\n");
-                    println!("id:{}", &j.id);
-                    print!("attribute:");
-                    for k in &j.attribute {
-                        print!("{}, ", &k);
-                    }
-                    println!("\n");
-                    print!("join_node:");
-                    for k in &j.join_node {
-                        print!("{}, ", &k.1);
-                    }
-                    println!("\n");
-                    print!("after_colon:");
-                    for k in &j.after_colon {
-                        print!("{}, ", &k);
-                    }
-                    println!("\n");
-                    println!("is_universal:{}", &j.is_universal);
                 }
                 println!("\n\nDECLARATIONS:");
                 for j in &i.declarations {
