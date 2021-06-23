@@ -96,10 +96,10 @@ pub mod handmade_css_parser {
         fn push_original_url(&mut self, url: String);
         fn push_links(&mut self, links_vec: Vec<String>);
         fn push_css_from_link(&mut self, link: String);
-        fn get_css_text(&mut self, idx: usize) -> String;
+        fn get_css_text(&mut self, idx: usize) -> String; // Fpr debug, will remove
         fn handle_link_format(&mut self, link: String) -> String;
         //fn parse_selector_and_declarations(& mut self, idx: usize) -> Vec<RuleAsString>;
-        fn parse_css(&mut self, idx: usize) -> Vec<Rule>;
+        fn parse_css(&mut self) -> Vec<Rule>;
     }
 
     #[derive(Default)]
@@ -137,6 +137,14 @@ pub mod handmade_css_parser {
             if !is_found {
                 tmp_string.push(i.clone());
             }
+        }
+
+        if !tmp_string.is_empty() {
+            let current_item = SelectorItem {
+                selector_type: current_selector_type.clone(), 
+                item_string: tmp_string.clone()
+            };
+            selector.items.push(current_item);
         }
 
         selector.all_string = selector_str.clone();
@@ -186,7 +194,7 @@ pub mod handmade_css_parser {
                 let empty_str = Default::default();
                 return empty_str
             }
-            self.parse_css(idx);
+            //self.parse_css();
             self.css_strs[idx].clone()
         }
 
@@ -236,160 +244,161 @@ pub mod handmade_css_parser {
             result
         }*/
 
-        fn parse_css(& mut self, idx: usize) -> Vec<Rule> {
+        fn parse_css(& mut self) -> Vec<Rule> {
             let mut result = Vec::new();
-            let mut tmp_str = String::new();
-            let mut comment_str = String::new();
-            let mut current_selectors: Vec<String> = Vec::new();
-            let mut declaration_vec = Vec::new();
-            let mut stack_for_nest: Vec<Vec<String>> = Vec::new();
-            let mut is_previous_slash: bool = false;
-            let mut is_previous_asterisk: bool = false;
-            let mut is_previous_space: bool = false;
-            let mut is_comment: bool = false;
-            for i in self.css_strs[idx].chars() {
-                if !is_comment && ((is_previous_space && (i == ' ')) || (i == '\n')) {
-                    // do nothing
-                } else {
-                    if is_comment == true {
-                        if (i == '/') && (is_previous_asterisk == true) {
-                            is_comment = false;
-                            comment_str.pop();
-                            let mut new_node: Rule = Default::default();
-                            new_node.comment = comment_str.clone();
-                            result.push(new_node);
+            for css_str in &self.css_strs {
+                let mut tmp_str = String::new();
+                let mut comment_str = String::new();
+                let mut current_selectors: Vec<String> = Vec::new();
+                let mut declaration_vec = Vec::new();
+                let mut stack_for_nest: Vec<Vec<String>> = Vec::new();
+                let mut is_previous_slash: bool = false;
+                let mut is_previous_asterisk: bool = false;
+                let mut is_previous_space: bool = false;
+                let mut is_comment: bool = false;
+                for i in css_str.chars() {
+                    if !is_comment && ((is_previous_space && (i == ' ')) || (i == '\n')) {
+                        // do nothing
+                    } else {
+                        if is_comment == true {
+                            if (i == '/') && (is_previous_asterisk == true) {
+                                is_comment = false;
+                                comment_str.pop();
+                                let mut new_node: Rule = Default::default();
+                                new_node.comment = comment_str.clone();
+                                result.push(new_node);
+                                continue;
+                            } else {
+                                comment_str.push(i);
+                            }
+                        } else if (i == '*') && (is_previous_slash == true) {
+                            is_comment = true;
+                            comment_str = String::new();
+                            tmp_str.pop();
                             continue;
-                        } else {
-                            comment_str.push(i);
-                        }
-                    } else if (i == '*') && (is_previous_slash == true) {
-                        is_comment = true;
-                        comment_str = String::new();
-                        tmp_str.pop();
-                        continue;
-                    } else if i == '{' {
-                        let mut selector_str = String::new();
-                        let mut count_in_selector = 0;
-                        let mut is_previous_space_j = false;
-                        // handling selector
-                        for j in tmp_str.chars() {
-                            if j == ',' {
-                                count_in_selector = 0;
-                                if !selector_str.is_empty() && is_previous_space_j {
+                        } else if i == '{' {
+                            let mut selector_str = String::new();
+                            let mut count_in_selector = 0;
+                            let mut is_previous_space_j = false;
+                            // handling selector
+                            for j in tmp_str.chars() {
+                                if j == ',' {
+                                    count_in_selector = 0;
+                                    if !selector_str.is_empty() && is_previous_space_j {
+                                        selector_str.pop();
+                                    }
+                                    current_selectors.push(selector_str);
+                                    selector_str = String::new();
+                                } else {
+                                    if (count_in_selector != 0) || (j != ' ') {
+                                        selector_str.push(j);
+                                    }
+                                    is_previous_space_j = j == ' ';
+                                    count_in_selector += 1;
+                                }
+                            }
+
+                            if !selector_str.is_empty() {
+                                if is_previous_space_j {
                                     selector_str.pop();
                                 }
                                 current_selectors.push(selector_str);
-                                selector_str = String::new();
-                            } else {
-                                if (count_in_selector != 0) || (j != ' ') {
-                                    selector_str.push(j);
-                                }
-                                is_previous_space_j = j == ' ';
-                                count_in_selector += 1;
                             }
-                        }
-
-                        if !selector_str.is_empty() {
-                            if is_previous_space_j {
-                                selector_str.pop();
+        
+                            if !current_selectors.is_empty() {
+                                stack_for_nest.push(current_selectors);
                             }
-                            current_selectors.push(selector_str);
-                        }
-    
-                        if !current_selectors.is_empty() {
-                            stack_for_nest.push(current_selectors);
-                        }
-                        tmp_str = String::new();
-                        current_selectors = Vec::new();
-                    } else if (i == ';') || (i == '}') {
-                        let mut current_declaration: Declaration = Default::default();
-                        if !tmp_str.is_empty() {
-                            let mut after_colon: bool = false;
-                            let mut count_in_declaration = 0;
-                            let mut is_previous_space_j = false;
-                            for j in tmp_str.chars() {
-                                if after_colon {
-                                    if (count_in_declaration != 0) || (j != ' ') {
-                                        current_declaration.value.push(j);
-                                    }
-                                    count_in_declaration += 1;
-                                } else {
-                                    if j == ':' {
-                                        after_colon = true;
-                                        count_in_declaration = 0;
-                                        if !current_declaration.propery.is_empty() && is_previous_space_j {
-                                            current_declaration.propery.pop();
-                                        }
-                                    } else {
+                            tmp_str = String::new();
+                            current_selectors = Vec::new();
+                        } else if (i == ';') || (i == '}') {
+                            let mut current_declaration: Declaration = Default::default();
+                            if !tmp_str.is_empty() {
+                                let mut after_colon: bool = false;
+                                let mut count_in_declaration = 0;
+                                let mut is_previous_space_j = false;
+                                for j in tmp_str.chars() {
+                                    if after_colon {
                                         if (count_in_declaration != 0) || (j != ' ') {
-                                            current_declaration.propery.push(j);
+                                            current_declaration.value.push(j);
                                         }
                                         count_in_declaration += 1;
+                                    } else {
+                                        if j == ':' {
+                                            after_colon = true;
+                                            count_in_declaration = 0;
+                                            if !current_declaration.propery.is_empty() && is_previous_space_j {
+                                                current_declaration.propery.pop();
+                                            }
+                                        } else {
+                                            if (count_in_declaration != 0) || (j != ' ') {
+                                                current_declaration.propery.push(j);
+                                            }
+                                            count_in_declaration += 1;
+                                        }
                                     }
+                                    is_previous_space_j = j ==' ';
                                 }
-                                is_previous_space_j = j ==' ';
-                            }
 
-                            if !current_declaration.value.is_empty() && is_previous_space_j {
-                                current_declaration.value.pop();
-                            }
-
-                            if !current_declaration.propery.is_empty() && !current_declaration.value.is_empty() {
-                                declaration_vec.push(current_declaration.clone());
-                            }
-                        }
-                        tmp_str = String::new();
-
-                        if i == '}' {
-                            let mut new_node: Rule = Default::default();
-                            if !stack_for_nest.is_empty() {
-                                for j in stack_for_nest[stack_for_nest.len()-1].clone() {
-                                    new_node.selectors.push(handle_selector(j.clone()));
+                                if !current_declaration.value.is_empty() && is_previous_space_j {
+                                    current_declaration.value.pop();
                                 }
-                                stack_for_nest.pop();
-                            } else {
-                                println!("NO SELECTOR");
+
+                                if !current_declaration.propery.is_empty() && !current_declaration.value.is_empty() {
+                                    declaration_vec.push(current_declaration.clone());
+                                }
                             }
-                            new_node.declarations = declaration_vec;
-                            if !new_node.selectors.is_empty() || !new_node.declarations.is_empty() {
-                                result.push(new_node);
+                            tmp_str = String::new();
+
+                            if i == '}' {
+                                let mut new_node: Rule = Default::default();
+                                if !stack_for_nest.is_empty() {
+                                    for j in stack_for_nest[stack_for_nest.len()-1].clone() {
+                                        new_node.selectors.push(handle_selector(j.clone()));
+                                    }
+                                    stack_for_nest.pop();
+                                } else {
+                                    println!("NO SELECTOR");
+                                }
+                                new_node.declarations = declaration_vec;
+                                if !new_node.selectors.is_empty() || !new_node.declarations.is_empty() {
+                                    result.push(new_node);
+                                }
+                                declaration_vec = Vec::new();
                             }
-                            declaration_vec = Vec::new();
+                        } else {
+                            tmp_str.push(i.clone());
                         }
-                    } else {
-                        tmp_str.push(i.clone());
+        
+                        is_previous_asterisk = i == '*';
+                        is_previous_slash = i == '/';
+                        is_previous_space = i == ' ';
+                    } 
+                }
+                
+                // for debug
+                for i in &result {
+                    println!("SELECTORS:");
+                    for j in &i.selectors {
+                        println!("all_string:{}", &j.all_string);
+                        //println!("base:{}, ", &j.base);
+                        print!("items:");
+                        for k in &j.items {
+                            print!("[ {}, ", &k.selector_type);
+                            print!("{} ],  ", &k.item_string);
+                        }
+                        println!("\n");
                     }
-    
-                    is_previous_asterisk = i == '*';
-                    is_previous_slash = i == '/';
-                    is_previous_space = i == ' ';
-                } 
-            }
-            
-            // for debug
-            for i in &result {
-                println!("SELECTORS:");
-                for j in &i.selectors {
-                    println!("all_string:{}", &j.all_string);
-                    //println!("base:{}, ", &j.base);
-                    print!("items:");
-                    for k in &j.items {
-                        print!("[ {}, ", &k.selector_type);
-                        print!("{} ],  ", &k.item_string);
+                    println!("\n\nDECLARATIONS:");
+                    for j in &i.declarations {
+                        println!("property:{}", &j.propery);
+                        println!("value:{}", &j.value);
+                        println!("\n");
                     }
+                    println!("COMMENT:");
+                    println!("{}", &i.comment);
                     println!("\n");
                 }
-                println!("\n\nDECLARATIONS:");
-                for j in &i.declarations {
-                    println!("property:{}", &j.propery);
-                    println!("value:{}", &j.value);
-                    println!("\n");
-                }
-                println!("COMMENT:");
-                println!("{}", &i.comment);
-                println!("\n");
             }
-
             result
         }
     }

@@ -181,7 +181,7 @@ pub mod handmade_html_parser {
     }
 
     #[derive(Default, Clone)]
-    struct DOMNode {
+    pub struct DOMNode {
         node_content: NodeContent,
         this_node_idx: usize,
         parent_node_idx: usize,
@@ -206,13 +206,12 @@ pub mod handmade_html_parser {
     }
 
 
-    pub fn parse_html(original_html : &String) -> (String, Vec<String>) {
-        let mut links_vec: Vec<String> = Vec::new();
+    pub fn parse_html(original_html : &String) -> (Vec<DOMNode>, Vec<String>) {
+        //let mut links_vec: Vec<String> = Vec::new();
         let tokens: Vec<Token> = tokenize(&original_html);
-        let dom_links = create_DOM_tree(tokens);
-        let mut result = String::new();
-        print_dom_node(&dom_links.0, &mut result);
-        (result, dom_links.1)
+        create_DOM_tree(tokens)
+        //let mut result = String::new();
+        //print_dom_node(&dom_links.0, &mut result);
         //String::from("")
         //print_token(tokens)
     }

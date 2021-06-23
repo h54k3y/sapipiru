@@ -2,6 +2,7 @@ pub mod styling_window {
 
     use crate::html_parser::handmade_html_parser;
     use crate::css_parser::handmade_css_parser;
+    use crate::render_tree::handmade_render_tree;
 
     use iced::{
         button, text_input, scrollable, Button, Text, TextInput, Column, Scrollable,
@@ -73,9 +74,11 @@ pub mod styling_window {
                     //self.scroll_text = handmade_html_parser::parse_html(&html_text);
                     let mut css_data: handmade_css_parser::CSSData = Default::default();
                     css_data.push_original_url(self.input_value.clone());
-                    let result = handmade_html_parser::parse_html(&html_text);
-                    css_data.push_links(result.1);
-                    self.scroll_text = css_data.get_css_text(0);
+                    let dom_tree = handmade_html_parser::parse_html(&html_text);
+                    css_data.push_links(dom_tree.1);
+                    let cssom_tree = css_data.parse_css();
+                    let render_tree = handmade_render_tree::create_render_tree(dom_tree.0, cssom_tree);
+                    //self.scroll_text = css_data.get_css_text(0);
                     /*self.scroll_text = handmade_css_parser::return_css_text();*/
                 },
             }
