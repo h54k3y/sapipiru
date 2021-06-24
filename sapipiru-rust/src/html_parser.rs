@@ -63,7 +63,7 @@ pub mod handmade_html_parser {
 
     // from https://dom.spec.whatwg.org/#interface-node
     #[derive(PartialEq, Eq, Debug, Clone)]
-    enum NodeType {
+    pub enum NodeType {
         Element,
         Attribute,
         Text,
@@ -174,18 +174,18 @@ pub mod handmade_html_parser {
         node_value: String,
         text_content: String,
     }*/
-    struct NodeContent {
+    pub struct NodeContent {
         node_type: NodeType,
-        node_name: String,
+        pub node_name: String,
         node_value: String,
     }
 
     #[derive(Default, Clone)]
     pub struct DOMNode {
-        node_content: NodeContent,
+        pub node_content: NodeContent,
         this_node_idx: usize,
         parent_node_idx: usize,
-        child_nodes_idx: Vec<usize>,
+        pub child_nodes_idx: Vec<usize>,
         first_child_idx: usize,
         last_child_idx: usize,
         previous_sibiling_idx: usize,

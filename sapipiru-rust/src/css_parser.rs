@@ -16,8 +16,8 @@ pub mod handmade_css_parser {
 
     #[derive(Default, Clone)]
     pub struct Rule {
-        selectors: Vec<Selector>,
-        declarations: Vec<Declaration>,
+        pub selectors: Vec<Selector>,
+        pub declarations: Vec<Declaration>,
         comment: String
     }
 
@@ -69,14 +69,14 @@ pub mod handmade_css_parser {
     #[derive(Clone)]
     pub struct SelectorItem {
         selector_type: SelectorType,
-        item_string: String,
+        pub item_string: String,
     }
 
     // https://developer.mozilla.org/ja/docs/Web/CSS/CSS_Selectors
     #[derive(Default, Clone)]
     pub struct Selector {
         all_string: String,
-        items: Vec<SelectorItem>
+        pub items: Vec<SelectorItem>
     }
 
     #[derive(Default, Clone)]
