@@ -183,11 +183,11 @@ pub mod handmade_html_parser {
     #[derive(Default, Clone)]
     pub struct DOMNode {
         pub node_content: NodeContent,
-        this_node_idx: usize,
+        pub this_node_idx: usize,
         parent_node_idx: usize,
         pub child_nodes_idx: Vec<usize>,
         first_child_idx: usize,
-        last_child_idx: usize,
+        pub last_child_idx: usize,
         previous_sibiling_idx: usize,
         next_sibiling_idx: usize,
     }

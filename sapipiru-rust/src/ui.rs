@@ -11,6 +11,7 @@ pub mod styling_window {
     };
     use std::io::Read;
     use crate::css_parser::handmade_css_parser::HandleCSSData;
+    use crate::render_tree::handmade_render_tree::HandleRederTree;
 
     #[derive(Default)]
     struct Styling {
@@ -77,7 +78,8 @@ pub mod styling_window {
                     let dom_tree = handmade_html_parser::parse_html(&html_text);
                     css_data.push_links(dom_tree.1);
                     let cssom_tree = css_data.parse_css();
-                    let render_tree = handmade_render_tree::create_render_tree(dom_tree.0, cssom_tree);
+                    let mut trees_data: handmade_render_tree::TreesData = Default::default();
+                    let render_tree = trees_data.create_render_tree(dom_tree.0, cssom_tree);
                     //self.scroll_text = css_data.get_css_text(0);
                     /*self.scroll_text = handmade_css_parser::return_css_text();*/
                 },
