@@ -24,10 +24,8 @@ pub mod handmade_render_tree {
     impl HandleRederTree for TreesData {
         fn create_render_tree(&mut self, dom_tree: Vec<handmade_html_parser::DOMNode>, cssom_tree:Vec<handmade_css_parser::Rule>) -> Vec<RenderTreeNode> {
             let result = Vec::new();
-    
-            // dfs dom_tree and check matched cssom_tree element.
-            let mut current_dom_node = &dom_tree[0];
-            let mut current_cssom_node = &cssom_tree[0];
+            self.dom_tree = dom_tree;
+            self.cssom_tree = cssom_tree;
             result
         }
 
@@ -37,17 +35,20 @@ pub mod handmade_render_tree {
                 return;
             }
     
-            let mut current_cssom_node = &self.cssom_tree[0];
-            let mut current_dom_node = self.dom_tree[current_node_idx].clone();
+            let current_dom_node = self.dom_tree[current_node_idx].clone();
+            let mut current_render_node: RenderTreeNode = Default::default();
             for current_cssom_node in &self.cssom_tree {
                 if current_dom_node.node_content.node_name == current_cssom_node.selectors[0].items[0].item_string {
-                    let mut current_render_node = RenderTreeNode {
+                    current_render_node = RenderTreeNode {
                         dom_node: current_dom_node.clone(),
                         style_value: current_cssom_node.selectors[0].items[0].item_string.clone(), // for temporary
                         child: current_dom_node.child_nodes_idx.clone(),
                     };
                 }
             }
+            
+            // push only last one.
+            self.render_tree.push(current_render_node);
     
             for child_idx in &current_dom_node.child_nodes_idx {
                 self.dfs(child_idx.clone(), current_dom_node.this_node_idx.clone());
