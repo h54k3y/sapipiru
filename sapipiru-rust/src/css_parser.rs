@@ -21,6 +21,23 @@ pub mod handmade_css_parser {
         comment: String
     }
 
+    // https://web-designer.cman.jp/css_ref/function_list/
+    // will handle only color and fontsize first.
+    #[derive(Clone)]
+    pub enum Value {
+        Color(Color),
+        UintValue(u32),
+        FloatValue(f32),
+        StringValue(String)
+    }
+
+    #[derive(Default, Clone)]
+    pub struct Color {
+        r: u16,
+        g: u16,
+        b: u16
+    }
+
     /*#[derive(Default, Clone)]
     pub struct RuleAsString {
         selector: String,
@@ -319,6 +336,7 @@ pub mod handmade_css_parser {
                                 for j in tmp_str.chars() {
                                     if after_colon {
                                         if (count_in_declaration != 0) || (j != ' ') {
+                                            // will handle here next
                                             current_declaration.value.push(j);
                                         }
                                         count_in_declaration += 1;
